@@ -1,6 +1,6 @@
 # MSX Village Product and Technical Specification
 
-Status: First-version software deployed; real-hardware acceptance pending
+Status: Updated first-version software implemented and verified in emulators; real-hardware acceptance pending
 
 ## Product intent
 
@@ -38,19 +38,35 @@ The first version provides:
 - A 32 by 24 tile exterior for each settlement.
 - A separate 32 by 24 tile house interior.
 - A standard collection of ground, path, building, plant, and interior tiles.
-- Placeable decorative objects such as trees and furniture.
-- A collection of player avatar appearances.
-- One special house entrance connecting the exterior to its interior.
+- Placeable decorative objects such as trees and furniture, with both 1 by 1 and 2 by 2 tile objects in the standard catalog.
+- A collection of player avatar appearances, rendered as 16 by 16 pixel sprites.
+- One special house entrance connecting the exterior to its interior, occupying 2 by 2 tiles.
 
-Moving or removing the entrance preserves the interior contents. The interior must always provide a reliable way to leave. An entrance can occupy any exterior cell. Enter at that cell enters the house; Enter or Escape from inside returns outside.
+The base tile remains 8 by 8 pixels. A 1 by 1 tile object occupies 8 by 8 pixels; a 2 by 2 tile object occupies 16 by 16 pixels. All sprites, including player avatars and future custom sprites, use a 16 by 16 pixel canvas. Object footprint and sprite dimensions are separate catalog properties: small decorative objects can use background tiles rather than hardware sprites.
+
+Moving or removing the entrance preserves the interior contents. The interior must always provide a reliable way to leave. The door is one semantic object with a 2 by 2 tile footprint, anchored at its top-left tile. Its entire footprint must fit within the exterior, including placements near plot edges. Enter when the avatar is at the entrance activates it; Enter or Escape from inside returns outside to a safe position. Door placement, selection, movement, and removal operate on the whole object rather than on four independent tiles.
 
 Tiles and objects are product concepts. An object may be rendered using background tiles or hardware sprites depending on the MSX graphics budget. The asset catalog and placement limits must produce scenes that remain readable on MSX1 hardware.
+
+### Player movement
+
+Movement should feel like the original NES Zelda: continuous pixel movement while a direction is held, four cardinal directions, and directional walking animation for the 16 by 16 avatar. The player must not jump a full tile for each movement step or move diagonally. Releasing directional input stops movement. Direction changes use alignment to the 8 pixel grid, retaining the current axis until a valid turning point when input remains held. Simultaneous direction inputs resolve consistently to one direction.
+
+Every object has an explicit solid or non-solid property, independent of whether it occupies 1 by 1 or 2 by 2 tiles or is rendered with background tiles or sprites. The player cannot walk over solid objects. Non-solid objects permit walking over their footprint, provided the underlying terrain is walkable. Collision follows the Zelda NES movement/collision approach: check the avatar's walking footprint in the intended movement direction before advancing, and stop at blocking terrain or objects without clipping through them. All occupied cells of a solid multi-tile object participate in collision. The visible 16 by 16 sprite and its walking footprint are distinct; the precise collision footprint remains a tuning decision.
+
+Each avatar must display facing up, down, left, and right, with a two-frame walking cycle for each direction: eight directional walk frames, each 16 by 16 pixels. Alternate the two frames during actual movement; when stopped or blocked, stop the walking cycle and retain the last facing direction in a standing pose. Standard avatars and future custom avatars must support the same directional frame layout.
+
+Movement must allow entrance interaction and preserve navigation between neighboring exhibits. Door interaction is a separate behavior from solidity, so an entrance must remain usable even when adjacent scenery is solid. Building uses a tile-aligned placement cursor independently of the avatar's pixel position. Walking speed and animation cadence should remain comparable on PAL and NTSC MSX1 machines; exact speed and animation timing are tuning decisions.
+
+Building targets the space immediately in front of the avatar in its current facing direction, never the space underneath it. Tile placement, object placement, replacement, and removal use this facing-based target. Show a clear tile-aligned preview of the target and the selected object's full footprint, including the 2 by 2 door. Multi-tile placement must keep the entire footprint in front of and clear of the avatar's walking footprint; reject invalid placement rather than shifting it underneath the player. Stopping movement preserves facing and therefore the build direction. Targeting must continue to enforce space boundaries, footprint rules, and settlement ownership.
+
+Use the local [Zelda disassembly reference](/Users/jannone/Documents/prj/msx/test-zelda-nes-decomp/zelda1-disassembly) for inspiration, particularly `Walker_Move`, grid-offset movement, and directional tile-collision checks in `src/Z_07.asm` and the corresponding routines in `msx-zcc/movement.c`. Treat that project as a read-only reference. The requirement concerns movement, collision, and walking animation; it does not add Zelda combat or other game systems.
 
 ### Planned custom artwork
 
 In the near future, players will be able to create a limited set of special tiles and special sprites, and customize their avatar sprites. This extends personal expression beyond the standard catalog while retaining the MSX1 visual constraints and a bounded ROM budget.
 
-This capability is planned after the first version, but the initial storage and snapshot models must accommodate it. Exact per-player quotas, artwork dimensions, animation limits, and the creation interface remain to be defined.
+This capability is planned after the first version, but the initial storage and snapshot models must accommodate it. Custom tile patterns use the 8 by 8 base tile format, while custom sprites and avatar frames use 16 by 16 pixels. Exact per-player quotas, animation limits, support for custom multi-tile objects, and the creation interface remain to be defined.
 
 ### Saving in the browser
 
@@ -88,7 +104,7 @@ Snapshots contain public exhibit data only. They must not include email addresse
 
 All persistent writes pass through the backend. The server derives the account identity from a verified session and resolves that account’s owned plot. Client-supplied user IDs, plot IDs, coordinates, ROM metadata, and emulator state do not establish ownership.
 
-A settlement save can modify only allowed content fields in the authenticated account’s plot. It cannot change ownership, world coordinates, or another player’s content. Validation covers map dimensions, valid asset IDs, object positions and counts, supported format versions, and payload size.
+A settlement save can modify only allowed content fields in the authenticated account’s plot. It cannot change ownership, world coordinates, or another player’s content. Validation covers map dimensions, valid asset IDs, object positions and counts, full object footprints, supported format versions, and payload size. Catalog metadata determines object dimensions; a client cannot change an asset's footprint to bypass placement validation. A 2 by 2 object or door must fit completely inside its space, and placement rules must account for every occupied tile.
 
 Exterior and interior are persisted together as one settlement revision. Saves include an expected revision, and the update checks ownership and revision atomically to prevent stale writes.
 
@@ -125,9 +141,13 @@ The game engine and standard assets are compiled during development or release b
 
 The snapshot format is versioned and has shared definitions for tile IDs, object IDs, plot references, and data limits. The MSX reader and web encoder must agree on these definitions. The current plot is edited in RAM; the ROM remains the source for the snapshot’s original data.
 
+The standard catalog must describe each object's footprint, constituent background patterns or sprite reference, and collision and interaction behavior. Store a multi-tile object as one placement with an asset reference and top-left tile anchor, not as unrelated tile placements. Count each placed object once toward the existing limit of 32 decorative objects per space, irrespective of footprint; the special entrance remains separately represented. Object replacement removes complete intersecting object placements. Erasing any occupied cell removes the whole object. Ground painting preserves objects. Object placement cannot overlap the entrance; placing or moving the entrance clears intersecting exterior objects while preserving the interior. Any incompatible change to existing placements, door data, sprite patterns, or binary encoding requires a versioned format and an explicit migration of saved settlements and ROM generation.
+
 ### Storage model for custom artwork
 
 The initial data model must distinguish standard catalog assets from player-created assets. Custom asset records should carry a stable identifier, owner, asset kind, format version, artwork revision, and the pattern, color, and frame data needed for MSX rendering. Settlement placements and avatar appearance should reference assets rather than duplicate artwork in every placement.
+
+Artwork metadata must include pixel dimensions, frame layout, and, for placeable objects, tile footprint, constituent patterns, and an explicit solid/non-solid property. Solidity belongs to the versioned asset definition, so all placements referencing that asset revision share its collision behavior. Sprite and avatar artwork uses 16 by 16 pixel frames; avatar definitions include two walking frames for each of the four facing directions. Validate these properties against the catalog and custom-artwork rules, and budget their pattern data and animation frames explicitly when assembling a 1 MiB snapshot.
 
 Asset ownership and permissions follow the same server-side rules as settlement ownership. A player can modify only their own artwork. The server validates custom artwork against supported MSX formats and per-player quotas. Creating an asset does not allow a player to define executable code or change game behavior.
 
@@ -161,6 +181,13 @@ Limited custom tile and sprite creation and avatar sprite customization are spec
 
 ## Acceptance criteria
 
+- Player avatars and other sprites render at 16 by 16 pixels; the base tile grid remains 8 by 8 pixels and each space remains 32 by 24 tiles.
+- Held directional input produces smooth, four-direction Zelda-inspired walking with directional animation, aligned turns, predictable collision, and comparable PAL/NTSC speed.
+- Every avatar displays up, down, left, and right facing with a two-frame walking cycle in each direction; the cycle stops when stationary or blocked and preserves facing.
+- In all four facing directions, building places, replaces, or removes content in front of the avatar rather than underneath it. The preview matches the affected tile or complete object footprint; multi-tile placement does not overlap the avatar's walking footprint.
+- Solid 1 by 1 and 2 by 2 objects block the player's walking footprint from every approach direction, without clipping. Non-solid objects allow passage over walkable underlying terrain. These behaviors survive saving and snapshot reload.
+- The standard catalog includes both 1 by 1 and 2 by 2 tile objects. Full footprints survive placement, selection, removal, save, and snapshot reload, including boundary validation.
+- The 2 by 2 door functions as one entrance; moving or removing it preserves the interior and exiting remains reliable.
 - A player can claim one plot, build its exterior and interior, save in the browser, and recover the saved content in a fresh snapshot.
 - A player can explore included neighbors and enter their houses without gaining write access to those exhibits.
 - Direct or modified-client requests cannot save another account’s content or change ownership and coordinates.
@@ -174,13 +201,15 @@ Limited custom tile and sprite creation and avatar sprite customization are spec
 ## Decisions to resolve before implementation
 
 - Confirmed: 1 MiB ASCII8, MSX1, 64 KB RAM. Validate the intended flash cartridge on real hardware.
-- Confirmed: 8 by 8 pixel tiles, up to 32 decorative objects per space rendered with background patterns, and four selectable 8 by 8 hardware-sprite avatars.
+- Revised requirement: 8 by 8 pixel base tiles; 16 by 16 sprites, including the four selectable avatar appearances; both 1 by 1 and 2 by 2 tile catalog objects; a 2 by 2 door. Retain up to 32 decorative objects per space, with background patterns available for decoration. Implemented in format 2; original object IDs retain their one-tile sizes, and new IDs provide larger objects.
+- Implemented: Zelda NES-inspired pixel movement and collision, explicit solid/non-solid objects, and two-frame walking animation for all four facing directions. Walking targets 90 pixels/second using BIOS refresh rate; the walking footprint is an 8 by 8 feet region at sprite offset (4,8). Perpendicular turns use 8-pixel alignment; simultaneous input prioritizes left, right, up, then down. PAL/NTSC emulator tests cover these choices.
+- Implemented: whole-object replacement/removal, footprint validation, and version-2 settlement/snapshot encoding. Read-time migration preserves legacy maps and objects and relocates an entrance only when necessary for its new footprint; the next owner save persists a new version-2 revision.
 - Define custom tile and sprite quotas, artwork and animation formats, revision retention, and their reserved snapshot budget before finalizing the storage and ROM formats.
 - Confirmed: invitation-based registration with username/password.
 - Confirmed: manual selection from available map locations; initial claims are bounded to coordinates -100 through 100.
 - Confirmed: 9 by 9 region; crossing an outer edge reports the snapshot boundary. The website can generate another region.
 - Verified: same-origin WebMSX RAM polling, game-requested saves, success/failure acknowledgements, and revision updates.
-- Verified: Enter/Escape exits from any interior position; entrance removal preserves the interior.
+- Verified in PAL/NTSC emulators: the 2 by 2 entrance renders and activates correctly; Enter/Escape exits from any interior position, and entrance removal preserves the interior.
 - Verified: preserve the running session, then explicitly discard it for the latest snapshot or confirm replacement using the latest expected revision.
 
 The first technical validation should demonstrate a hardware-compatible MegaROM, one browser save round trip, and ownership enforcement under concurrent claims and saves. These checks establish feasibility without expanding the product scope.

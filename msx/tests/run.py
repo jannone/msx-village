@@ -1,6 +1,6 @@
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-import hashlib, os, subprocess, sys
+import hashlib, os, subprocess, sys, re
 root=Path(__file__).resolve().parents[1]
 fixture=sys.argv[1] if len(sys.argv)>1 else 'startup'
 if fixture not in ('startup','interaction'): raise SystemExit('Unknown test fixture')
@@ -11,6 +11,7 @@ def check(case):
  rom=root/f'out/village-{kind}.rom';report=output/f'{machine}-{kind}-{fixture}.txt'
  report.unlink(missing_ok=True)
  env=dict(os.environ,VILLAGE_REPORT=str(report),VILLAGE_OWN_SLOT=str(slot))
+ for address,name in re.findall(r'^\s+([0-9A-F]{8})\s+_(\w+)\s+village', (root/'out/village.map').read_text(), re.M): env['VILLAGE_VAR_'+name]=str(int(address,16))
  executable=os.environ.get('VILLAGE_OPENMSX','openmsx')
  proc=subprocess.run([executable,'-setting',str(root/'tests/headless.xml'),'-machine',machine,'-cart',str(rom),'-romtype','ASCII8','-script',str(root/f'tests/{fixture}.tcl')],env=env,capture_output=True,text=True,timeout=90)
  (output/f'{machine}-{kind}-{fixture}.log').write_text(proc.stdout+proc.stderr)

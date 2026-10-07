@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { root, ensureDependency } from '../../scripts/dependencies.mjs';
+await import('./assets.mjs');
 const vendor = ensureDependency('MSXgl');
 const cwd = resolve(root,'msx'); mkdirSync(resolve(cwd,'out'),{recursive:true});
 execFileSync('c++',['-std=c++17','-o','out/MSXhex',`-I${vendor}/tools/MSXtk/src`,`${vendor}/tools/MSXtk/src/MSXhex.cpp`],{cwd,stdio:'inherit'});

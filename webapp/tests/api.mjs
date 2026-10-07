@@ -30,7 +30,22 @@ const claimed=claims.find(c=>c.status===201).data.plot;
 assert.equal((await api('/api/plots/claim','POST',{x:claimed.x,y:claimed.y},b.cookie)).status,409);
 assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:initialSettlement()},b.cookie)).status,404,'another account cannot save the owned plot');
 assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:initialSettlement(),owner_id:b.data.user.id},a.cookie)).status,400);
-const first=initialSettlement();first.exterior[0]=7;first.interior[100]=12;first.interiorObjects.push({kind:3,x:5,y:5});first.avatar=2;first.door={x:1,y:2};
+// Existing production snapshots may still carry v1 JSON. Exercise the read-time
+// upgrade in a real D1 row, not just the pure migration function.
+const legacy={...initialSettlement(),formatVersion:1,door:{x:31,y:23}};
+execFileSync(resolve(cwd,'node_modules/.bin/wrangler'),['d1','execute','DB','--local','--command',`UPDATE plots SET content='${JSON.stringify(legacy)}' WHERE id='${claimed.id}'`],{cwd,stdio:'pipe'});
+const upgraded=await api('/api/me','GET',undefined,a.cookie);
+assert.equal(upgraded.data.plot.content.formatVersion,2);
+assert.deepEqual(upgraded.data.plot.content.door,{x:30,y:22});
+assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:legacy},a.cookie)).status,400,'old ROM saves must not reinterpret the v2 catalog');
+for (const malformed of [
+ {...initialSettlement(),exteriorObjects:[{kind:8,x:31,y:3}]},
+ {...initialSettlement(),exteriorObjects:[{kind:8,x:4,y:4},{kind:4,x:5,y:5}]},
+ {...initialSettlement(),exteriorObjects:[{kind:4,x:17,y:13}]},
+ {...initialSettlement(),exteriorObjects:[{kind:8,x:3,y:3,solid:false}]},
+ {...initialSettlement(),door:{x:31,y:23}},
+]) assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:malformed},a.cookie)).status,400,'server validates catalog footprints and properties');
+const first=initialSettlement();first.exterior[0]=7;first.interior[100]=12;first.interiorObjects.push({kind:3,x:5,y:5});first.exteriorObjects.push({kind:8,x:24,y:16},{kind:11,x:27,y:18},{kind:4,x:6,y:3});first.interiorObjects.push({kind:10,x:9,y:9});first.avatar=2;first.door={x:1,y:2};
 const saves=await Promise.all([api('/api/settlement','PUT',{expectedRevision:0,settlement:first},a.cookie),api('/api/settlement','PUT',{expectedRevision:0,settlement:initialSettlement()},a.cookie)]);
 assert.deepEqual(saves.map(c=>c.status).sort(),[200,409]);
 const me=await api('/api/me','GET',undefined,a.cookie);assert.equal(me.data.plot.revision,1);

@@ -29,6 +29,7 @@ For production, add `--remote`. Invitations expire after seven days and can crea
 npm run cf-typegen
 npm run build
 node tests/api.mjs
+node tests/settlement.mjs
 node tests/save-acknowledgement.mjs
 npx wrangler deploy --dry-run
 ```
@@ -47,7 +48,11 @@ The Worker uses Node-compatible scrypt with N=32768, r=8, p=3. Production authen
 - `PUT /api/settlement`: expected revision and validated settlement. Ownership is derived from the session. Atomic revision checks reject stale writes with 409. Database triggers retain each revision.
 - `GET /api/snapshot.rom?x=0&y=0`: fixed 1 MiB ASCII8 snapshot. Defaults to the signed-in owner's neighborhood. Guest or distant-region ROMs have no editable owner plot.
 
-Migrations define accounts, invitations, sessions, plots, immutable settlement history, request limits, and separate custom asset/revision/reference tables. Custom artwork authoring is deferred; these tables reserve stable ownership and revision relationships. Current maps use only the standard catalog.
+Migrations define accounts, invitations, sessions, plots, immutable settlement history, request limits, and separate custom asset/revision/reference tables. Custom artwork authoring is deferred; these tables reserve stable ownership and revision relationships. Current maps use only the standard catalog. Migration 0003 adds artwork dimensions, object footprint/solidity, and frame layout to immutable artwork revisions for future authoring.
+
+Settlement and ROM formats are version 2. Catalog entries determine object size and solidity; saves cannot supply replacements for that metadata. Validation covers all occupied cells, prohibits overlapping object footprints or entrance overlap, and requires the 2×2 door to fit. Saves retain the 1744-byte layout and kind/x/y triples; new catalog IDs 8–11 supply 2×2 objects while IDs 0–7 retain their one-tile dimensions.
+
+Stored v1 settlements and immutable history are preserved. Reading current plots or assembling a ROM converts v1 content to v2: maps, objects, and avatar choice remain intact; an entrance grows to 2×2 at its existing anchor where possible, otherwise moves to the nearest fitting location free of decorative objects. The next successful owner save persists v2 as a new revision. V1 submissions are rejected so an old running ROM cannot overwrite revised semantics; players should save before the update and load a fresh snapshot after it.
 
 ## Browser save bridge
 

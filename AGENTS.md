@@ -67,3 +67,9 @@ C-BIOS emulator checks do not replace release validation on suitable MSX1 BIOS c
 - Run API tests only against a local Worker/D1; `webapp/tests/api.mjs` refuses non-local URLs.
 - Apply D1 migrations before publishing code that uses them.
 - Keep invitation codes, test credentials, generated ROMs, and vendor checkouts out of Git.
+
+## Updated graphics and movement
+
+- Keep `webapp/shared/catalog.ts` as the standard footprint/solidity definition; `msx/tools/assets.mjs` generates `msx/assets.generated.h` and original Village artwork. The main ROM build runs this generator.
+- Settlement and snapshot format 2 uses 16×16 sprites, two walk frames per direction, pixel movement, facing-based building, and 1×1/2×2 objects. Preserve legacy saved content through the documented read-time migration; do not silently reinterpret old object IDs as larger objects.
+- The local Zelda reference at `/Users/jannone/Documents/prj/msx/test-zelda-nes-decomp/zelda1-disassembly` is read-only. Inspect movement/collision for inspiration; do not build, regenerate, modify, or change Git state there.

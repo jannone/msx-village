@@ -2,6 +2,10 @@
 
 React and TypeScript frontend with a Cloudflare Worker API, built using Vite and the Cloudflare Vite plugin.
 
+Live app: [msx-village.jannone.workers.dev](https://msx-village.jannone.workers.dev/).
+
+Greeting API: [GET /api/hello](https://msx-village.jannone.workers.dev/api/hello).
+
 ## Local development
 
 Use Node.js 22.12 or newer. From this directory:

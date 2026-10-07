@@ -29,6 +29,7 @@ For production, add `--remote`. Invitations expire after seven days and can crea
 npm run cf-typegen
 npm run build
 node tests/api.mjs
+node tests/save-acknowledgement.mjs
 npx wrangler deploy --dry-run
 ```
 
@@ -50,7 +51,7 @@ Migrations define accounts, invitations, sessions, plots, immutable settlement h
 
 ## Browser save bridge
 
-The parent page polls the game’s versioned RAM bridge through the same-origin iframe’s WebMSX bus. It freezes edits while copying the owner's 1744-byte buffer, submits the expected revision, and acknowledges success only after persistence. Authentication stays in the website. Failed requests retain RAM edits; expired sessions can sign back in without reloading the game. Conflict controls explicitly choose either the latest saved version or replacing it with the current session. Leaving or reloading unsaved work requires confirmation.
+The parent page polls the game’s versioned RAM bridge through the same-origin iframe’s WebMSX bus. It freezes edits while copying the owner's 1744-byte buffer, submits the expected revision, and acknowledges success only after persistence. Authentication stays in the website. A failed account-details refresh cannot turn an already confirmed save into a failure. API requests time out after 15 seconds, keeping RAM edits available for retry. Failed requests retain RAM edits; expired sessions can sign back in without reloading the game. Conflict controls explicitly choose either the latest saved version or replacing it with the current session. Leaving or reloading unsaved work requires confirmation.
 
 ## Deployment
 

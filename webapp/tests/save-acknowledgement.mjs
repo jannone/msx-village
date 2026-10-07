@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { acknowledgeSavedRevision } from '../shared/save-acknowledgement.ts';
+import { BRIDGE_ADDRESS as B } from '../shared/settlement.ts';
+const bytes=new Uint8Array(65536);const memory={write:(address,value)=>{bytes[address]=value;}};
+let failures=0;
+bytes[B+6]=1;
+acknowledgeSavedRevision(memory,0x12345678,async()=>{throw new Error('account refresh unavailable');},()=>failures++);
+await new Promise(resolve=>setImmediate(resolve));
+assert.equal(bytes[B+5],3,'a failed account refresh must not change confirmed persistence to failure');
+assert.deepEqual(Array.from(bytes.slice(B+8,B+12)),[0x78,0x56,0x34,0x12]);
+assert.equal(bytes[B+6],1,'only the game should clear dirty after reading acknowledgement');
+assert.equal(failures,1,'show account refresh failure separately');
+acknowledgeSavedRevision(memory,9,async()=>({}),()=>failures++);
+await new Promise(resolve=>setImmediate(resolve));
+assert.equal(bytes[B+8],9);assert.equal(bytes[B+5],3);assert.equal(failures,1);
+acknowledgeSavedRevision(memory,10,()=>{throw new Error('synchronous refresh error');},()=>failures++);
+await new Promise(resolve=>setImmediate(resolve));assert.equal(bytes[B+5],3);assert.equal(failures,2);
+console.log('PASS: confirmed save survives account refresh failure; revision protocol and acknowledgement ownership');

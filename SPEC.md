@@ -100,7 +100,7 @@ The database enforces a unique owner for each coordinate pair and a unique plot 
 
 One plot per account is a hard invariant. One plot per human cannot be guaranteed merely through email verification or social login, because a person may hold multiple identities.
 
-For an initial small community, invitation-based registration is the proposed starting policy. Public registration can introduce verified identities, rate limits, and bot protection. These reduce abuse without claiming to prove unique humans. Shared IP addresses must not be treated as proof of duplicate players.
+For the initial small community, invitation-based username/password registration is the confirmed policy. Public registration can introduce verified identities, rate limits, and bot protection. These reduce abuse without claiming to prove unique humans. Shared IP addresses must not be treated as proof of duplicate players.
 
 ## Technical stack
 
@@ -117,7 +117,7 @@ React and Vite are supported together with a Worker backend through Cloudflareâ€
 
 MSXgl provides C tooling and mapped-ROM targets, including ASCII8 and Konami formats with sufficient documented capacity for the proposed ROM size. The final mapper and minimum machine RAM requirement depend on the intended hardware and flash cartridges. See [MSXgl targets](https://aoineko.org/msxgl/index.php?title=Targets).
 
-WebMSX is designed to embed MSX software in webpages. The exact save integration hook remains to be validated in a prototype; it is a proposed extension rather than an assumed existing API. See the [WebMSX repository](https://github.com/ppeccin/WebMSX).
+WebMSX is designed to embed MSX software in webpages. The same-origin integration reads and writes a designated RAM bridge through WebMSXâ€™s machine bus; save round trips and failure recovery have been verified. See the [WebMSX repository](https://github.com/ppeccin/WebMSX).
 
 ### ROM generation
 
@@ -137,7 +137,7 @@ D1 is the starting storage choice for the small, bounded artwork payloads and th
 
 ### Browser save bridge
 
-The proposed bridge uses a designated RAM buffer and a versioned request protocol:
+The implemented bridge uses a designated RAM buffer and a versioned request protocol:
 
 1. The game prepares its editable settlement data and signals a save request.
 2. The WebMSX integration reads a stable copy of the buffer.

@@ -9,6 +9,7 @@ The website and API are deployed through the GitHub-connected Cloudflare Workers
 - Local Cloudflare runtime and D1: invitation reuse, passwords, session logout, cross-origin rejection, simultaneous account/coordinate claims, owner-only saves, concurrent stale-save rejection, malformed content, snapshot byte layout and recovery of persisted content.
 - Browser integration: register, claim, launch, avatar changes, place an interior object, save through F5, conflict display and explicit replacement, expired authentication retaining edits, sign back in without reloading, and successful retry.
 - Production: actual GitHub push triggered a successful automatic build/deploy. Public APIs and 1 MiB guest snapshots work. Secure password derivation runs on the actual Cloudflare runtime. The embedded WebMSX guest ROM reaches its read-only ready state.
+- Additional audit: occupied-neighbor house entry and furniture preservation are covered on PAL/NTSC, catching and fixing an incorrect bank selection. Confirmed-save acknowledgement is regression-tested against account-refresh failures. API timeouts retain RAM edits for retry.
 - Production schema migrations are installed and recorded in D1. Dedicated database: `msx-village-production`.
 
 ## Remaining release validation

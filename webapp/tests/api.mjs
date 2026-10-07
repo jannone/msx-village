@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomBytes, createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { initialSettlement } from '../shared/settlement.ts';
+import { initialSettlement, decodeSettlement, DATA_SIZE } from '../shared/settlement.ts';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 const cwd = resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -30,7 +30,7 @@ const claimed=claims.find(c=>c.status===201).data.plot;
 assert.equal((await api('/api/plots/claim','POST',{x:claimed.x,y:claimed.y},b.cookie)).status,409);
 assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:initialSettlement()},b.cookie)).status,404,'another account cannot save the owned plot');
 assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:initialSettlement(),owner_id:b.data.user.id},a.cookie)).status,400);
-const first=initialSettlement();first.exterior[0]=7;
+const first=initialSettlement();first.exterior[0]=7;first.interior[100]=12;first.interiorObjects.push({kind:3,x:5,y:5});first.avatar=2;first.door={x:1,y:2};
 const saves=await Promise.all([api('/api/settlement','PUT',{expectedRevision:0,settlement:first},a.cookie),api('/api/settlement','PUT',{expectedRevision:0,settlement:initialSettlement()},a.cookie)]);
 assert.deepEqual(saves.map(c=>c.status).sort(),[200,409]);
 const me=await api('/api/me','GET',undefined,a.cookie);assert.equal(me.data.plot.revision,1);
@@ -39,7 +39,7 @@ assert.equal((await api('/api/settlement','PUT',{expectedRevision:1,settlement:{
 assert.equal((await api('/api/settlement','PUT',{expectedRevision:1,settlement:initialSettlement()})).status,401);
 const romResponse=await fetch(base+'/api/snapshot.rom',{headers:{Cookie:a.cookie}});
 assert.equal(romResponse.status,200);const rom=new Uint8Array(await romResponse.arrayBuffer());
-assert.equal(rom.length,1048576);assert.deepEqual(Array.from(rom.slice(32768,32772)),[77,83,88,86]);assert.equal(rom[32776],40);assert.equal(rom[(5+40)*8192+16],me.data.plot.content.exterior[0],'fresh snapshot recovers persisted tiles');
+assert.equal(rom.length,1048576);assert.deepEqual(Array.from(rom.slice(32768,32772)),[77,83,88,86]);assert.equal(rom[32776],40);assert.deepEqual(decodeSettlement(rom.slice((5+40)*8192,(5+40)*8192+DATA_SIZE)),me.data.plot.content,'fresh snapshot recovers exterior, interior, objects, avatar and door together');
 assert.equal(new TextDecoder().decode(rom).includes(a.data.user.id),false,'snapshot excludes account identity');
 const guest=new Uint8Array(await (await fetch(base+'/api/snapshot.rom')).arrayBuffer());assert.equal(guest[32776],255,'guest ROM must have no editable plot');
 assert.equal((await api('/api/auth/logout','POST',{},a.cookie)).status,200);

@@ -47,18 +47,43 @@ proc run {} {
   debug write memory 0xe005 3
   pause
   assert {[read 6]==0} "save acknowledgement"
-  key 8 0x10 6
-  assert {[read 13]!=40} "neighbor crossing: slot=[read 13] x=[read 14] y=[read 15]"
+  keymatrixdown 8 0x10
+  for {set step 0} {$step<100 && [read 13]==40} {incr step} {pause 0.05}
+  keymatrixup 8 0x10
+  pause
+  assert {[read 13]==39} "neighbor crossing: slot=[read 13] x=[read 14] y=[read 15]"
   key 6 0x20
   assert {[read 18]==0} "visitor entered build mode"
   key 8 1
   assert {[read 6]==0} "visitor edited owner data"
+  keymatrixdown 8 0x10
+  for {set step 0} {$step<100 && [read 14]>16} {incr step} {pause 0.02}
+  keymatrixup 8 0x10
+  pause
+  assert {[read 14]==16} "neighbor door approach"
+  key 7 0x80
+  assert {[read 7]==1} "neighbor house entry: slot=[read 13] x=[read 14] y=[read 15] door=[debug read memory 0xc00b],[debug read memory 0xc00c]"
+  keymatrixdown 8 0x20
+  for {set step 0} {$step<100 && [read 15]>10} {incr step} {pause 0.02}
+  keymatrixup 8 0x20
+  pause
+  assert {[read 15]==10} "neighbor furniture approach"
+  assert {[debug read VRAM 0x1950]==19} "neighbor furniture missing"
+  key 6 0x20
+  assert {[read 18]==0} "neighbor interior allowed editing"
+  key 6 0x80
+  key 8 1
+  key 7 1
+  assert {[debug read VRAM 0x1950]==19} "neighbor furniture modified"
+  assert {[read 6]==0} "neighbor interior dirtied owner"
+  key 7 4
+  assert {[read 7]==0} "neighbor interior exit"
   key 3 0x20
   assert {[read 13]==40} "home navigation"
   assert {[debug read memory 0xd670]==0} "owner interior lost on visit"
  }
  assert {$::interaction::violations==0} "VDP timing violations"
- finish "PASS house, objects, entrance preservation, offline save, save handshake, neighbor ownership; VDP violations=0"
+ finish "PASS house, objects, entrance preservation, offline save, save handshake, neighbor exterior/interior ownership; VDP violations=0"
 }
 proc step {} {
  if {[catch {

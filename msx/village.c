@@ -67,8 +67,10 @@ void message(const char* s) { notice=s; noticeFrames=120; }
 
 void loadPlot(u8 slot) {
  currentSlot=slot;
- if (slot != ownSlot) {
-  bank(5+slot);
+ // Select the snapshot bank before comparing ownership. SDCC can otherwise
+ // reuse the comparison result in A instead of the original slot argument.
+ bank(5+slot);
+ if (currentSlot != ownSlot) {
   Mem_Copy((const void*)0xA000,visitData,DATA_SIZE);
  }
  inside=0; editing=0; palette=0;

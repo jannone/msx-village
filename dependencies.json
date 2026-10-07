@@ -1,0 +1,4 @@
+{
+  "MSXgl": { "repository": "https://github.com/aoineko-fr/MSXgl.git", "commit": "1e169a862d0787ab52b3ed619cf0f48e55d21d29", "path": "msx/vendor/MSXgl" },
+  "WebMSX": { "repository": "https://github.com/ppeccin/WebMSX.git", "commit": "4f4009e86d3e0bb9be7dcd7f0a582b0cd411d660", "path": "webapp/vendor/WebMSX" }
+}

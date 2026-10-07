@@ -1,0 +1,16 @@
+import { randomBytes, createHash } from 'node:crypto';
+import { writeFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+const remote = process.argv.includes('--remote');
+const outputArg = process.argv.indexOf('--output');
+if (outputArg < 0 || !process.argv[outputArg+1]) throw new Error('Usage: node scripts/invite.mjs [--remote] --output /private/path/invitation.txt');
+const output = resolve(process.argv[outputArg+1]);
+const token = randomBytes(32).toString('hex');
+const hash = createHash('sha256').update(token).digest('hex');
+const time = Math.floor(Date.now()/1000);
+const cwd = resolve(dirname(fileURLToPath(import.meta.url)),'..');
+execFileSync(resolve(cwd,'node_modules/.bin/wrangler'),['d1','execute','DB',remote?'--remote':'--local','--command',`INSERT INTO invitations(hash,created_at,expires_at) VALUES ('${hash}',${time},${time+7*86400})`],{cwd,stdio:'pipe'});
+writeFileSync(output,`${token}\n`,{mode:0o600,flag:'wx'});
+console.log(`Invitation created in ${remote?'production':'local development'}, expires in seven days. Code saved privately to ${output}.`);

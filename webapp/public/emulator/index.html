@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MSX Village player</title>
+<style>body{margin:0;background:#1e3029;display:grid;place-items:center}#wmsx-screen{max-width:100%}</style></head>
+<body><div id="wmsx-screen"></div><script src="wmsx.js"></script><script>
+WMSX.AUTO_START = false;
+WMSX.ALLOW_URL_PARAMETERS = false;
+WMSX.MACHINE = 'MSX1A';
+WMSX.RAMNORMAL_SIZE = 64;
+WMSX.CARTRIDGE1_FORMAT = 'ASCII8';
+WMSX.MEDIA_CHANGE_DISABLED = true;
+WMSX.SCREEN_FULLSCREEN_MODE = -2;
+WMSX.SCREEN_DEFAULT_SCALE = 1;
+WMSX.SCREEN_FILTER_MODE = 0;
+WMSX.SCREEN_CONTROL_BAR = 0;
+const query = new URLSearchParams(location.search);
+const snapshot = new URL('/api/snapshot.rom',location.origin);
+for (const key of ['x','y']) if (query.has(key)) snapshot.searchParams.set(key,query.get(key));
+WMSX.CARTRIDGE1_URL = snapshot.href;
+WMSX.start();
+</script></body></html>

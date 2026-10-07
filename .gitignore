@@ -6,3 +6,10 @@ dist/
 .dev.vars*
 *.tsbuildinfo
 .DS_Store
+msx/vendor/
+msx/out/
+msx/emul/
+webapp/vendor/
+webapp/public/emulator/wmsx.js
+webapp/public/emulator/WebMSX-README.txt
+.local/

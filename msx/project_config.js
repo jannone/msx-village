@@ -1,0 +1,17 @@
+ProjName = 'village';
+ProjModules = ['village'];
+LibModules = ['system', 'bios', 'vdp', 'keyboard', 'memory'];
+Machine = '1';
+Target = 'ROM_ASCII8';
+ROMSize = 1024;
+ROMMainSegments = 3;
+Compiler = 'sdcc';
+Assembler = 'sdasz80';
+Linker = 'sdcc';
+MakeLib = 'sdar';
+SDCCPath = process.env.VILLAGE_SDCC_PATH || (process.platform === 'darwin' ? '/opt/homebrew/share/sdcc/' : '/usr/share/sdcc/');
+Hex2Bin = `${ProjDir}out/MSXhex`;
+DoDeploy = false;
+DoRun = false;
+AddROMSignature = true;
+AppSignature = false;

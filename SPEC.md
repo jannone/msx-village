@@ -1,6 +1,6 @@
 # MSX Village Product and Technical Specification
 
-Status: Draft for product discussion
+Status: First-version implementation in progress
 
 ## Product intent
 
@@ -76,7 +76,7 @@ When custom artwork is introduced, snapshots must also embed the specific asset 
 
 The database is the authoritative current world. A ROM is an edition of that world at a particular time. Players can load a fresh snapshot to see newer exhibits and keep old downloads to revisit earlier versions.
 
-The initial target is a 1 MB MegaROM, interpreted as approximately one mebibyte of ROM capacity rather than one megabit. This assumption needs confirmation before fixing the binary layout.
+The initial target is a 1 MB MegaROM, interpreted as approximately one mebibyte of ROM capacity rather than one megabit. Confirmed target: 1 MiB ASCII8 MegaROM on MSX1 with 64 KB RAM.
 
 A fixed ROM cannot contain an indefinitely growing world. The design should support snapshots of a bounded contiguous region, initially centered on the player’s neighborhood. The website can later expose region selection for visiting more distant exhibits. The number of plots per snapshot will follow a measured budget for code, assets, map data, objects, and indexing.
 
@@ -173,10 +173,10 @@ Limited custom tile and sprite creation and avatar sprite customization are spec
 
 ## Decisions to resolve before implementation
 
-- Confirm 1 MB ROM capacity, mapper, supported flash cartridges, and minimum MSX1 RAM.
+- Confirmed: 1 MiB ASCII8, MSX1, 64 KB RAM. Validate the intended flash cartridge on real hardware.
 - Define tile pixel size, object sizes, avatar rendering, and practical placement limits.
 - Define custom tile and sprite quotas, artwork and animation formats, revision retention, and their reserved snapshot budget before finalizing the storage and ROM formats.
-- Choose the initial authentication provider and registration policy.
+- Confirmed: invitation-based registration with username/password.
 - Choose manual plot selection or automatic allocation.
 - Define snapshot region size and behavior at its edges.
 - Validate the WebMSX save hook and game-to-browser response mechanism.

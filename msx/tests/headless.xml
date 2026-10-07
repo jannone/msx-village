@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!DOCTYPE settings SYSTEM 'settings.dtd'>
+<!-- Isolated test configuration; never saved to the user's emulator settings. -->
+<settings>
+  <settings>
+    <setting id="renderer">none</setting>
+    <setting id="vsync">false</setting>
+    <setting id="save_settings_on_exit">false</setting>
+  </settings>
+</settings>

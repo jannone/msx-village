@@ -5,6 +5,8 @@
   "account_id": "efd16eeeb3db869c2be3565760c54ec5",
   "compatibility_date": "2026-10-07",
   "workers_dev": true,
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [{ "binding": "DB", "database_name": "msx-village-production", "database_id": "52718ba7-f5e6-4cb2-adc3-2efed1584132", "migrations_dir": "migrations" }],
   "assets": {
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]

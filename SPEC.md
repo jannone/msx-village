@@ -1,6 +1,6 @@
 # MSX Village Product and Technical Specification
 
-Status: First-version implementation in progress
+Status: First-version software deployed; real-hardware acceptance pending
 
 ## Product intent
 
@@ -25,7 +25,7 @@ The website connects accounts and persistent settlement data to the MSX experien
 
 A player signs in to the website, sees the village map, and claims an available plot. Each account can own one plot. A plot has stable world coordinates and includes both its exterior and its house interior; the interior does not consume another world location.
 
-Plot allocation should favor a compact, inhabited neighborhood. Whether players choose among available locations or receive an automatically assigned location remains a product decision. Plot relocation and ownership transfers are outside the first version.
+Plot allocation should favor a compact, inhabited neighborhood. The first version lets players select an available location on the neighborhood map, starting at the village center. Plot relocation and ownership transfers are outside the first version.
 
 ### Building and exploring
 
@@ -42,7 +42,7 @@ The first version provides:
 - A collection of player avatar appearances.
 - One special house entrance connecting the exterior to its interior.
 
-Moving or removing the entrance preserves the interior contents. The interior must always provide a reliable way to leave. Exact entrance placement and exit behavior will be defined with the interaction design.
+Moving or removing the entrance preserves the interior contents. The interior must always provide a reliable way to leave. An entrance can occupy any exterior cell. Enter at that cell enters the house; Enter or Escape from inside returns outside.
 
 Tiles and objects are product concepts. An object may be rendered using background tiles or hardware sprites depending on the MSX graphics budget. The asset catalog and placement limits must produce scenes that remain readable on MSX1 hardware.
 
@@ -78,7 +78,7 @@ The database is the authoritative current world. A ROM is an edition of that wor
 
 The initial target is a 1 MB MegaROM, interpreted as approximately one mebibyte of ROM capacity rather than one megabit. Confirmed target: 1 MiB ASCII8 MegaROM on MSX1 with 64 KB RAM.
 
-A fixed ROM cannot contain an indefinitely growing world. The design should support snapshots of a bounded contiguous region, initially centered on the player’s neighborhood. The website can later expose region selection for visiting more distant exhibits. The number of plots per snapshot will follow a measured budget for code, assets, map data, objects, and indexing.
+A fixed ROM cannot contain an indefinitely growing world. The design should support snapshots of a bounded contiguous region, initially centered on the player’s neighborhood. The website can later expose region selection for visiting more distant exhibits. The first snapshot format includes 81 plots in a 9 by 9 region, with 336 KiB reserved in banks 86–127 for future artwork.
 
 Snapshots contain public exhibit data only. They must not include email addresses, session credentials, provider credentials, or any secret that grants write access. Plot identifiers in a ROM are references, never authorization.
 
@@ -174,13 +174,13 @@ Limited custom tile and sprite creation and avatar sprite customization are spec
 ## Decisions to resolve before implementation
 
 - Confirmed: 1 MiB ASCII8, MSX1, 64 KB RAM. Validate the intended flash cartridge on real hardware.
-- Define tile pixel size, object sizes, avatar rendering, and practical placement limits.
+- Confirmed: 8 by 8 pixel tiles, up to 32 decorative objects per space rendered with background patterns, and four selectable 8 by 8 hardware-sprite avatars.
 - Define custom tile and sprite quotas, artwork and animation formats, revision retention, and their reserved snapshot budget before finalizing the storage and ROM formats.
 - Confirmed: invitation-based registration with username/password.
-- Choose manual plot selection or automatic allocation.
-- Define snapshot region size and behavior at its edges.
-- Validate the WebMSX save hook and game-to-browser response mechanism.
-- Define the house exit and entrance-removal behavior.
-- Define the save-conflict recovery interface.
+- Confirmed: manual selection from available map locations; initial claims are bounded to coordinates -100 through 100.
+- Confirmed: 9 by 9 region; crossing an outer edge reports the snapshot boundary. The website can generate another region.
+- Verified: same-origin WebMSX RAM polling, game-requested saves, success/failure acknowledgements, and revision updates.
+- Verified: Enter/Escape exits from any interior position; entrance removal preserves the interior.
+- Verified: preserve the running session, then explicitly discard it for the latest snapshot or confirm replacement using the latest expected revision.
 
 The first technical validation should demonstrate a hardware-compatible MegaROM, one browser save round trip, and ownership enforcement under concurrent claims and saves. These checks establish feasibility without expanding the product scope.

@@ -39,12 +39,14 @@ Interior, and Relics; trades and further themed collections remain planned.
 
 The art guide and two native herbalist sample rooms establish the direction.
 Production catalog/storage integration and per-section graphics allocation are
-implemented locally. The cottage milestone was verified on 2026-10-08: roof,
+implemented and deployed. The cottage milestone was verified on 2026-10-08: roof,
 windowed walls, entrance, garden objects, bed, and hearth were placed through the
 game controls, saved to local D1, and recovered in a fresh WebMSX ROM. The relocated
 entrance still opens and exits after reload. See the
 [acceptance record](msx/art/COTTAGE-ACCEPTANCE.md). Further themed collections and
-release checks follow that proof; these changes have not been deployed.
+real-hardware release checks follow that proof. The milestone was deployed through
+GitHub/Cloudflare on 2026-10-08; the live web assets and generated ROM core were
+verified against the local build.
 See [the art guide](msx/art/ART-GUIDE.md) for source,
 scale, constraints, and the isolated playable art-study ROM. The generated concept
 board is a mood reference; native MSX output determines the production artwork.

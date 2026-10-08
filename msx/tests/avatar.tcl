@@ -42,7 +42,7 @@ proc run {} {
  }
  # Test every catalog footprint in every facing, including invalid placement.
  var editing 1;var objectMode 1
- for {set object 0} {$object<30} {incr object} {
+ for {set object 0} {$object<32} {incr object} {
   var selection $object
   for {set direction 0} {$direction<4} {incr direction} {
    var facing $direction;pause 0.05;budget

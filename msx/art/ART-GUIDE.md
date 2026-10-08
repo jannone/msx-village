@@ -1,7 +1,8 @@
 # Village art direction: a quiet place between journeys
 
-Status: native art study and initial production catalog integration. The medieval direction is
-agreed; the individual pixel designs and proportions are still candidates.
+Status: refined herbalist artwork integrated into the production catalog and
+save format. Production-ROM acceptance is documented in
+[HERBALIST-INTEGRATION.md](HERBALIST-INTEGRATION.md).
 
 ## Intent
 
@@ -42,9 +43,10 @@ economy. Each plot remains a small independent exhibit.
 | --- | --- | --- |
 | Old oak | 5x5 tiles / 40x40 pixels | A garden landmark |
 | Pine | 3x4 / 24x32 | A narrow, vertical silhouette |
-| Orchard tree | 3x3 / 24x24 | A smaller garden tree; fruit variant still to draw |
+| Orchard tree | 3x3 / 24x24 | A compact fruit-bearing garden tree |
 | Entrance | 2x2 / 16x16 | Consistent with the existing game door |
-| Well, bed, table, hearth | 2x2 / 16x16 | First scale comparison with the avatar |
+| Well, small bed/table, hearth | 2x2 / 16x16 | Compact furnishings retained at their original sizes |
+| Traveler bed / herbalist worktable | 2x3 / 3x2 | Full-length bedding and a broad work surface |
 | Shrine | 1x2 / 8x16 | A modest hint of a larger world |
 | Cottage roof / wall section | 6x2 / 2x3 tiles | Modular building pieces in the production catalog |
 
@@ -54,8 +56,11 @@ decision. No generated artwork dimensions are taken as authoritative.
 
 The first two rooms are the herbalist garden and cottage. Review tree/body scale,
 house proportions, door visibility, furniture recognition, and walking clearance.
-The current roof, wall, floor, and foliage textures are intentionally candidates
-for refinement after seeing their native output.
+The refinement pass replaces dotted canopies with clustered light/shadow shapes,
+adds fruit accents, reduces roof and floor line noise, opens the plaster surfaces,
+and gives the rug a quiet center. Larger bedding and a contrasting worktable
+provide clearer proportions beside the 16x16 traveler. Native captures remain
+the reference for future refinements.
 
 ## Avatar integration
 
@@ -102,15 +107,13 @@ still required before release.
 
 ## Following milestones
 
-1. Review/refine these two native rooms against the art rules.
-2. Implemented: production width/height, category browsing, and artwork references;
-   old object IDs and saved placements are preserved through format-3 migration.
-3. Implemented: per-section pattern allocation, full-footprint previews, collision,
-   validation, and snapshot encoding. The player-built cottage save/reload check
-   passed locally on 2026-10-08; see [COTTAGE-ACCEPTANCE.md](COTTAGE-ACCEPTANCE.md).
-4. Add the knight and cartographer collections with shared terrain and architecture.
-5. Verify save/reload, legacy data, ownership, offline
-   snapshots, and hardware before publishing.
+1. Complete: refined foliage, material textures, and furniture proportions.
+2. Complete: every glyph used by both sample rooms is available through production
+   terrain or objects; 23 terrain tools and 32 objects, with stable existing IDs.
+3. Complete: both rooms reconstruct exactly in the production renderer, with
+   normal entrances, catalog editing, temporary text, and save/snapshot encoding.
+4. Next collection: knight and cartographer objects sharing these materials.
+5. Real MSX1 hardware/flash-cartridge acceptance remains pending.
 
 Keep future custom artwork compatible with the asset definitions. Its authoring
 UI and per-player quotas remain a separate milestone.

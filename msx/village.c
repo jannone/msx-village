@@ -31,7 +31,7 @@ const char* notice;
 
 #include "assets.generated.h"
 u8 catalogItems[OBJECT_COUNT], catalogCount, catalogIndex, catalogCategory;
-const char* tileNames[] = {"GRASS","PATH","WATER","WALL","ROOF","TIMBER","FLOOR","SAND","FLOWERS","STONE","HEDGE","BRICK","RUG","HOUSE DOOR","WINDOW","FENCE"};
+
 
 
 void bank(u8 n) { *((volatile u8*)0x7800) = n; }
@@ -126,7 +126,7 @@ void renderSection(u8 section) {
  }
  VDP_WriteVRAM_16K(screen+section*256,0x1800+section*256,256);
 }
-void catalogList(void){u8 i;catalogCount=0;for(i=0;i<(objectMode?OBJECT_COUNT:16);++i)if(!objectMode||objectCategory[i]==catalogCategory)catalogItems[catalogCount++]=i;catalogIndex=0;for(i=0;i<catalogCount;++i)if(catalogItems[i]==selection)catalogIndex=i;selection=catalogItems[catalogIndex];}
+void catalogList(void){u8 i;catalogCount=0;for(i=0;i<(objectMode?OBJECT_COUNT:TERRAIN_COUNT);++i)if(!objectMode||objectCategory[i]==catalogCategory)catalogItems[catalogCount++]=i;catalogIndex=0;for(i=0;i<catalogCount;++i)if(catalogItems[i]==selection)catalogIndex=i;selection=catalogItems[catalogIndex];}
 void cursor(u8 x,u8 y,u8 w,u8 h,u8 color){
  u8 i,pattern;
  for(i=2;i<6;++i)VDP_SetSpriteSM1(i,0,212,0,0);
@@ -143,7 +143,7 @@ void draw(void) {
  if(redraw) {
   VDP_EnableDisplay(FALSE);for(i=0;i<6;++i)VDP_SetSpriteSM1(i,0,212,0,0);
   Mem_Set(0,textMask,96);
-  Mem_Copy((const void*)(d+base),screen,MAP_SIZE);
+  for(i=0;i<MAP_SIZE;++i)screen[i]=terrainPatterns[d[base+i]];
   for(i=0;i<32;++i){u16 p=obj+i*3;u8 kind=d[p];if(kind<OBJECT_COUNT && d[p+1]+objectWidth[kind]<=32 && d[p+2]+objectHeight[kind]<=24)paintObject(kind,d[p+1],d[p+2]);}
   if(!inside && d[4]<31 && d[5]<23){for(i=0;i<4;++i)screen[(u16)(d[5]+i/2)*32+d[4]+i%2]=40+i;}
   if(palette) {
@@ -151,7 +151,7 @@ void draw(void) {
    Mem_Set(0,screen,MAP_SIZE);Mem_Set(255,textMask,96);
    text(1,0,objectMode?categoryNames[catalogCategory]:"TERRAIN");text(1,1,"Z/X CATEGORY  F3 TILES/OBJECTS");text(1,2,"ARROWS CHOOSE  SPACE CONFIRMS");
    for(i=start;i<catalogCount && i<start+6;++i){u8 id=catalogItems[i],x=1+((i-start)%3)*10,y=5+((i-start)/3)*8;
-    if(objectMode)paintObject(id,x,y);else if(id==13){u8 q;for(q=0;q<4;++q){u16 p=(u16)(y+q/2)*32+x+q%2;screen[p]=40+q;textMask[p/8]&=~(1<<(p%8));}}else{u16 p=(u16)y*32+x;screen[p]=id;textMask[p/8]&=~(1<<(p%8));}
+    if(objectMode)paintObject(id,x,y);else if(id==13){u8 q;for(q=0;q<4;++q){u16 p=(u16)(y+q/2)*32+x+q%2;screen[p]=40+q;textMask[p/8]&=~(1<<(p%8));}}else{u16 p=(u16)y*32+x;screen[p]=terrainPatterns[id];textMask[p/8]&=~(1<<(p%8));}
    }
    text(1,21,objectMode?objectNames[selection]:tileNames[selection]);
    {char dimensions[12]="1 X 1 TILES";dimensions[0]='0'+targetSize;dimensions[4]='0'+targetHeight;text(1,22,dimensions);}
@@ -292,7 +292,7 @@ void main(void) {
  for(i=0;i<4;++i)bridge[8+i]=*((const u8*)0xA00C+i);
  bank(5+(ownSlot<81?ownSlot:40));Mem_Copy((const void*)0xA000,(void*)ownerData,DATA_SIZE);
  loadPlot(ownSlot<81?ownSlot:40);safePosition(128,104);
- VDP_SetMode(VDP_MODE_SCREEN2);VDP_EnableVBlank(TRUE);VDP_ClearVRAM();
+ VDP_SetMode(VDP_MODE_SCREEN2);VDP_SetBackdropColor(1);VDP_EnableVBlank(TRUE);VDP_ClearVRAM();
  VDP_EnableDisplay(FALSE);
 
  displayMode=DISPLAY_SCENE;noticeFrames=0;

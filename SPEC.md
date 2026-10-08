@@ -37,14 +37,26 @@ tiles. Format 3 preserves the dimensions and solidity of all existing IDs 0–11
 new artwork has new IDs. Categories currently group Classic, Garden, Village,
 Interior, and Relics; trades and further themed collections remain planned.
 
+The refined herbalist garden and cottage establish the production direction. The
+complete study can be reconstructed using the public catalog: 23 terrain tools
+(including the separate entrance tool) and 32 objects. Added terrain includes
+grass tufts, cobblestones, riverbanks, soil, roof eaves, dark interior surrounds,
+and rug borders. A 2 by 3 traveler bed and 3 by 2 worktable complement the existing
+small furnishings. Existing terrain and object IDs, footprints, and solidity are
+preserved; all new entries append to format 3 without changing its byte layout.
+Saved terrain IDs are mapped to generated artwork slots independently, so extra
+terrain cannot collide with legacy object graphics.
+
 The art guide and two native herbalist sample rooms establish the direction.
 Production catalog/storage integration and per-section graphics allocation are
 implemented and deployed. The cottage milestone was verified on 2026-10-08: roof,
 windowed walls, entrance, garden objects, bed, and hearth were placed through the
 game controls, saved to local D1, and recovered in a fresh WebMSX ROM. The relocated
 entrance still opens and exits after reload. See the
-[acceptance record](msx/art/COTTAGE-ACCEPTANCE.md). Further themed collections and
-real-hardware release checks follow that proof. The milestone was deployed through
+[acceptance record](msx/art/COTTAGE-ACCEPTANCE.md). The complete refined study also has a production-ROM fixture with exact per-cell
+pattern/color checks, entrance/exit and catalog checks, and local D1 save/reload
+coverage. See [herbalist integration](msx/art/HERBALIST-INTEGRATION.md). Further
+themed collections and real-hardware release checks follow that proof. The milestone was deployed through
 GitHub/Cloudflare on 2026-10-08; the live web assets and generated ROM core were
 verified against the local build.
 See [the art guide](msx/art/ART-GUIDE.md) for source,

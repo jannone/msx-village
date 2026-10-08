@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { herbalistSettlement } from '../../msx/art/production-herbalist.mjs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { randomBytes, createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { initialSettlement, decodeSettlement, DATA_SIZE } from '../shared/settlement.ts';
@@ -64,6 +66,16 @@ const romResponse=await fetch(base+'/api/snapshot.rom',{headers:{Cookie:a.cookie
 assert.equal(romResponse.status,200);const rom=new Uint8Array(await romResponse.arrayBuffer());
 assert.equal(rom.length,1048576);assert.deepEqual(Array.from(rom.slice(32768,32772)),[77,83,88,86]);assert.equal(rom[32776],40);assert.deepEqual(decodeSettlement(rom.slice((5+40)*8192,(5+40)*8192+DATA_SIZE)),me.data.plot.content,'fresh snapshot recovers exterior, interior, objects, avatar and door together');
 assert.equal(new TextDecoder().decode(rom).includes(a.data.user.id),false,'snapshot excludes account identity');
+// Persist the complete refined art study through the same public save API.
+const herbalist=herbalistSettlement();
+assert.equal((await api('/api/settlement','PUT',{expectedRevision:2,settlement:herbalist},a.cookie)).status,200);
+const restored=await api('/api/me','GET',undefined,a.cookie);
+assert.equal(restored.data.plot.revision,3);assert.deepEqual(restored.data.plot.content,herbalist);
+const artRom=new Uint8Array(await (await fetch(base+'/api/snapshot.rom',{headers:{Cookie:a.cookie}})).arrayBuffer());
+assert.deepEqual(decodeSettlement(artRom.slice(45*8192,45*8192+DATA_SIZE)),herbalist);
+mkdirSync(resolve(cwd,'../msx/out/herbalist'),{recursive:true});
+writeFileSync(resolve(cwd,'../msx/out/herbalist/from-local-api.rom'),artRom);
+console.log('PASS complete herbalist exterior/interior saved to local D1 and recovered in fresh production ROM');
 const guest=new Uint8Array(await (await fetch(base+'/api/snapshot.rom')).arrayBuffer());assert.equal(guest[32776],255,'guest ROM must have no editable plot');
 assert.equal((await api('/api/auth/logout','POST',{},a.cookie)).status,200);
 assert.equal((await api('/api/me','GET',undefined,a.cookie)).data.user,null);

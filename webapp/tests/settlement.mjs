@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { initialSettlement, validateSettlement, migrateSettlement, encodeSettlement, decodeSettlement } from '../shared/settlement.ts';
-import { OBJECT_CATALOG } from '../shared/catalog.ts';
+import { OBJECT_CATALOG, TERRAIN_CATALOG } from '../shared/catalog.ts';
 const s = initialSettlement();
 s.exteriorObjects = [{ kind: 8, x: 29, y: 21 }, { kind: 4, x: 4, y: 3 }, { kind: 11, x: 8, y: 8 }];
 assert.deepEqual(decodeSettlement(encodeSettlement(s)), s);
@@ -42,3 +42,11 @@ for (const [kind,x,y] of [[28,26,22],[29,30,21]]) {
  assert.throws(()=>validateSettlement({...cottage,exteriorObjects:[{kind,x,y:y+1}]}),/footprint/);
 }
 console.log('PASS cottage roof and wall full-footprint bounds and binary round trip');
+
+const expanded=initialSettlement();
+for(let id=16;id<TERRAIN_CATALOG.length;id++)expanded.exterior[id]=expanded.interior[id]=id;
+expanded.interiorObjects=[{kind:30,x:2,y:3},{kind:31,x:12,y:12}];
+assert.deepEqual(decodeSettlement(encodeSettlement(expanded)),expanded);
+for(const invalid of [13,TERRAIN_CATALOG.length,255])assert.throws(()=>validateSettlement({...expanded,exterior:expanded.exterior.map((v,i)=>i===0?invalid:v)}),/tile map/);
+assert.deepEqual(OBJECT_CATALOG.slice(30).map(o=>[o.width,o.height]),[[2,3],[3,2]]);
+console.log('PASS appended terrain IDs and scaled furnishings survive save encoding; invalid IDs rejected');

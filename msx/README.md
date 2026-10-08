@@ -69,7 +69,7 @@ across section boundaries and save results interrupting a catalog.
 
 Walking advances pixels at 90 pixels/second, normalized to BIOS PAL/NTSC refresh rate. Perpendicular turns wait for an 8-pixel alignment unless blocked; reversals and turns away from obstacles remain possible; releasing input stops immediately. The collision footprint is the central 8×8 feet region at sprite offset (4,8). Solid ground and catalog objects block that footprint. Walkable decorations do not override underlying solid terrain. Background and collision data update when the scene changes, rather than being reconstructed on every walking frame.
 
-The shared catalog in `webapp/shared/catalog.ts` generates the C footprint/solidity tables through `msx/tools/assets.mjs`. IDs 0–7 preserve their one-tile dimensions; IDs 8–11 add a large tree, dining table, double bed, and walkable flower patch. IDs 12–29 add medieval trees, furnishings, garden details, a 6×2 roof and 2×3 wall sections. Garden herbs, flowers, pots, and bottles are walkable; structural pieces and furniture are solid. Categories offer six full-footprint previews per page. The door remains separate and passable, with Enter interaction. Decorative objects render with background patterns; the hardware sprites are the avatar and build outline.
+The shared catalog in `webapp/shared/catalog.ts` generates the C footprint/solidity tables through `msx/tools/assets.mjs`. IDs 0–7 preserve their one-tile dimensions; IDs 8–11 add a large tree, dining table, double bed, and walkable flower patch. IDs 12–29 add medieval trees, furnishings, garden details, a 6×2 roof and 2×3 wall sections. IDs 30–31 add the 2×3 traveler bed and 3×2 herbalist worktable. Terrain IDs 16–22 add tufts, cobblestones, riverbank, soil, roof eaves, dark surrounds, and rug borders; IDs 0–15 preserve their semantics. `TERRAIN_CATALOG` generates terrain names, collision, and the mapping from saved terrain IDs to artwork slots. Garden herbs, flowers, pots, and bottles are walkable; structural pieces and furniture are solid. Categories offer six full-footprint previews per page. The door remains separate and passable, with Enter interaction. Decorative objects render with background patterns; the hardware sprites are the avatar and build outline.
 
 The build outline follows facing and previews the full footprint. Placement rejects plot edges, door overlap, and overlap with the player's feet. Object replacement removes all intersecting objects as whole placements; erasing any quadrant removes the whole object. Painting ground retains decorative objects. Placing a door clears intersecting exterior objects, keeps the interior, and moves the single entrance.
 
@@ -84,3 +84,14 @@ A settlement occupies 1744 bytes: format 3 at 0, avatar at 1, entrance coordinat
 Owner data resides at D000; visit data and the frame buffer stay below D000. The bridge resides at E000: signature 0–3, online capability 4, save state 5 (idle/request/busy/success/failure/conflict = 0–5), dirty 6, interior 7, revision 8–11, owner slot 12, viewed slot 13, player feet tile x/y 14–15, selection 16, object mode 17, editing 18, ready 19, facing 20 (up/down/left/right = 0–3), walk frame 21, moving 22, build target x/y 23–24, target width 25, valid target 26, protocol version 27, avatar pixel x/y 28–29, BIOS refresh rate 30, display mode 31. Height is derived from the selected catalog entry. No credentials are embedded.
 
 MSXgl and its included sample font carry upstream CC BY-SA notices, preserved in the pinned checkout. WebMSX’s pinned source mentions `license.txt`, but does not include it; upstream issue [#4](https://github.com/ppeccin/WebMSX/issues/4) tracks that missing declaration. No license is invented here.
+
+## Complete herbalist production preview
+
+After the normal ROM build, run `node msx/tools/build-herbalist-demo.mjs`, then
+`python3 msx/tests/run.py herbalist`. The generated
+`out/herbalist/village-herbalist.rom` runs the production editor with the entire
+refined garden and interior. These are test/demo files, never a production DB seed.
+The fixture compares every displayed pattern/color cell with the native study,
+checks entry/exit, restores graphics after menus, and places newly added terrain.
+`webapp/tests/api.mjs` independently saves this content through local Worker/D1
+and verifies a fresh snapshot. See [art/HERBALIST-INTEGRATION.md](art/HERBALIST-INTEGRATION.md).

@@ -67,12 +67,23 @@ proc run {} {
  check {[read 31]==0 && [graphics] eq $original} "catalog to panel to scene restoration"
  check {[debug read_block memory 0xd000 1744] eq $data} "dismissal changed data"
  # Interior path uses the same reconstruction, not stale exterior graphics.
- var inside 1;var redraw 1;var collisionDirty 1;pause;settle
+ # Enter through game input: poking inside/redraw can race a draw that already
+ # captured its exterior map pointer and produce a stale baseline on PAL.
+ var px 128;var py 88;var facing 1;pause;settle
+ key 7 128
+ check {[read 7]==1} "interior entry"
  set interior [graphics]
  key 6 64;key 8 1
  check {[read 7]==1} "catalog dismissal exited interior"
  check {[read 31]==0} "interior catalog did not dismiss"
- check {[graphics] eq $interior} "interior restoration"
+ if {[graphics] ne $interior} {
+  set actual [graphics]
+  for {set part 0} {$part<3} {incr part} {
+   binary scan [lindex $interior $part] cu* before;binary scan [lindex $actual $part] cu* after
+   for {set byte 0} {$byte<[llength $before]} {incr byte} {if {[lindex $before $byte]!=[lindex $after $byte]} {puts stderr "interior difference part=$part byte=$byte expected=[lindex $before $byte] actual=[lindex $after $byte] mode=[read 31] redraw=[debug read memory $::env(VILLAGE_VAR_redraw)]";break}}
+  }
+  error "interior restoration"
+ }
  key 7 2;key 7 4
  check {[read 7]==1 && [graphics] eq $interior} "panel dismiss also exited house"
  check {$::display::violations==0} "unsafe VRAM access"

@@ -1,11 +1,11 @@
-import { OBJECT_CATALOG, DOOR_SIZE } from './catalog.ts';
+import { OBJECT_CATALOG, TERRAIN_CATALOG, DOOR_SIZE } from './catalog.ts';
 export const WIDTH = 32;
 export const HEIGHT = 24;
 export const CELLS = WIDTH * HEIGHT;
 export const DATA_SIZE = 1744;
 export const BRIDGE_ADDRESS = 0xe000;
 export const OWNER_ADDRESS = 0xd000;
-export const TILE_NAMES = ['Grass', 'Path', 'Water', 'Wall', 'Roof', 'Timber', 'Floor', 'Sand', 'Flowers', 'Stone', 'Hedge', 'Brick', 'Rug', 'House door', 'Window', 'Fence'];
+export const TILE_NAMES = TERRAIN_CATALOG.map(tile => tile.name);
 export const OBJECT_NAMES = OBJECT_CATALOG.map(object => object.name);
 export interface PlacedObject { kind: number; x: number; y: number }
 export interface Settlement {
@@ -40,7 +40,7 @@ export function validateSettlement(input: unknown): Settlement {
   if (Object.keys(s).some(key => !fields.includes(key)) || s.formatVersion !== 3 || !integer(s.avatar, 0, 3)) throw new Error('Unsupported settlement fields');
   for (const field of ['exterior', 'interior']) {
     const map = s[field];
-    if (!Array.isArray(map) || map.length !== CELLS || !map.every(tile => integer(tile, 0, 15) && tile !== 13)) throw new Error('Invalid tile map');
+    if (!Array.isArray(map) || map.length !== CELLS || !map.every(tile => integer(tile, 0, TERRAIN_CATALOG.length - 1) && tile !== 13)) throw new Error('Invalid tile map');
   }
   for (const field of ['exteriorObjects', 'interiorObjects']) {
     const objects = s[field];

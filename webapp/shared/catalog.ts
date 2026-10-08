@@ -30,7 +30,36 @@ export const OBJECT_CATALOG = [
   { name: 'Wooden chest', width: 1, height: 1, category: 3, solid: true, art: 'chest' },
   { name: 'Cottage roof', width: 6, height: 2, category: 2, solid: true, art: 'Cottage roof' },
   { name: 'Cottage wall', width: 2, height: 3, category: 2, solid: true, art: 'Cottage wall' },
+  { name: 'Traveler bed', width: 2, height: 3, category: 3, solid: true, art: 'Traveler bed' },
+  { name: 'Herbalist worktable', width: 3, height: 2, category: 3, solid: true, art: 'Herbalist worktable' },
 ] as const;
 export const OBJECT_CATEGORIES = ['Classic', 'Garden', 'Village', 'Interior', 'Relics'] as const;
-export const SOLID_TILES = [2, 3, 4, 5, 9, 10, 11, 14, 15];
+// Terrain IDs are storage IDs, independent of generated VDP pattern slots.
+// Append only: all existing 0–15 meanings and solidity remain unchanged.
+export const TERRAIN_CATALOG = [
+  {name:'Grass',art:'grass',solid:false},
+  {name:'Path',art:'path',solid:false},
+  {name:'Water',art:'water',solid:true},
+  {name:'Wall',art:'wall',solid:true},
+  {name:'Roof',art:'roof',solid:true},
+  {name:'Timber',art:'beam',solid:true},
+  {name:'Floor',art:'floor',solid:false},
+  {name:'Sand',art:'sand',solid:false},
+  {name:'Flowers',art:'flower',solid:false},
+  {name:'Stone',art:'stone',solid:true},
+  {name:'Hedge',art:'hedge',solid:true},
+  {name:'Brick',art:'brick',solid:true},
+  {name:'Rug',art:'rug',solid:false},
+  {name:'House door',art:'doorTL',solid:false},
+  {name:'Window',art:'window',solid:true},
+  {name:'Fence',art:'fence',solid:true},
+  {name:'Grass tufts',art:'tuft',solid:false},
+  {name:'Cobblestones',art:'cobble',solid:false},
+  {name:'Riverbank',art:'bank',solid:true},
+  {name:'Garden soil',art:'soil',solid:false},
+  {name:'Roof eaves',art:'roofEdge',solid:true},
+  {name:'Dark surround',art:'dark',solid:true},
+  {name:'Rug border',art:'rugEdge',solid:false},
+] as const;
+export const SOLID_TILES = TERRAIN_CATALOG.flatMap((tile,id)=>tile.solid?[id]:[]);
 export const DOOR_SIZE = 2;

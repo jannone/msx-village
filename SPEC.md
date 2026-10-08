@@ -19,6 +19,36 @@ The website connects accounts and persistent settlement data to the MSX experien
 - Clearly distinguish a saved world snapshot from the current online database.
 - Enforce ownership and allocation rules on the server, regardless of client behavior.
 
+## Visual direction and catalog expansion
+
+The visual direction is a peaceful medieval village at the edge of an adventure,
+inspired by the readable top-down environments of A Link to the Past and the
+inhabited villages of Chrono Trigger. Use original artwork with timber and stone
+architecture, varied trees, gardens, warm interiors, and occasional weathered relics.
+The adventure influence is visual and does not add combat, quests, or an economy.
+
+Organize the expanded catalog into landscape, village, garden, trades, relics,
+interiors, and avatars. The herbalist cottage, retired knight's garden, and
+cartographer's study are reference exhibits for personal expression through objects.
+The production catalog uses rectangular background objects with explicit width and
+height, including a 5 by 5 oak, 3 by 4 pine, 6 by 2 cottage roof, and 2 by 3 wall
+section. The avatar canvas remains 16 by 16 pixels and the entrance remains 2 by 2
+tiles. Format 3 preserves the dimensions and solidity of all existing IDs 0–11;
+new artwork has new IDs. Categories currently group Classic, Garden, Village,
+Interior, and Relics; trades and further themed collections remain planned.
+
+The art guide and two native herbalist sample rooms establish the direction.
+Production catalog/storage integration and per-section graphics allocation are
+implemented locally. The cottage milestone was verified on 2026-10-08: roof,
+windowed walls, entrance, garden objects, bed, and hearth were placed through the
+game controls, saved to local D1, and recovered in a fresh WebMSX ROM. The relocated
+entrance still opens and exits after reload. See the
+[acceptance record](msx/art/COTTAGE-ACCEPTANCE.md). Further themed collections and
+release checks follow that proof; these changes have not been deployed.
+See [the art guide](msx/art/ART-GUIDE.md) for source,
+scale, constraints, and the isolated playable art-study ROM. The generated concept
+board is a mood reference; native MSX output determines the production artwork.
+
 ## Player experience
 
 ### Claiming a settlement
@@ -33,12 +63,46 @@ The player launches a ROM snapshot through the website and enters the village as
 
 Building tools support choosing, placing, replacing, and removing tiles and objects. Exploration should retain a clear view of the settlement; a temporary palette or menu can provide editing controls.
 
+### Display and temporary text
+
+Normal exploration and building use the entire 32 by 24 scene without persistent
+text, startup instructions, or routine mode/visitor banners. The avatar and facing
+placement preview communicate ordinary play state. Text appears only in an
+explicit interface or when an action needs feedback, such as saving, a placement
+failure, a limit, or an ownership restriction.
+
+SCREEN 2 has three independent eight-row sections. Scene mode reserves no pattern
+slots for fonts: each section may use up to 256 pattern/color definitions. A short
+message temporarily replaces the bottom eight rows and loads its font into that
+section only; the upper sixteen rows remain intact. Catalogs and help use the full
+screen, with temporary allocations for text and object previews. Fonts remain in
+ROM and are uploaded on demand.
+
+Panels and full-screen interfaces pause movement and building. Space, Enter, or
+Escape dismisses a short message without also placing an object or leaving the
+house. F5 can retry a failed save. Catalog navigation remains active, and Space,
+Enter, Escape, or F2 returns to the scene. Full-screen interfaces hide the avatar;
+bottom panels hide any avatar crossing the panel boundary and hide the build
+cursor. Save results can replace an open catalog with a bottom panel.
+
+Transitions briefly blank the display while the affected pattern/color tables and
+name table are rebuilt, then restore gameplay sprites. Closing an interface
+reconstructs the affected scene sections from the current settlement and ROM
+artwork, without modifying settlement data or retaining a second full VRAM copy.
+Each section independently allocates the pattern/color pairs used by its 256
+cells. Logical artwork and temporary text have separate identities; native slots
+are assigned during rendering, so no persistent font range reduces scene art.
+The generator bounds the standard logical atlas to 256 patterns. A section cannot
+need more than one native pattern per cell, including objects crossing sections.
+
+### Scene contents
+
 The first version provides:
 
 - A 32 by 24 tile exterior for each settlement.
 - A separate 32 by 24 tile house interior.
 - A standard collection of ground, path, building, plant, and interior tiles.
-- Placeable decorative objects such as trees and furniture, with both 1 by 1 and 2 by 2 tile objects in the standard catalog.
+- Placeable decorative objects such as trees and furniture, with small 1 by 1 and 2 by 2 objects as well as larger rectangular footprints.
 - A collection of player avatar appearances, rendered as 16 by 16 pixel sprites.
 - One special house entrance connecting the exterior to its interior, occupying 2 by 2 tiles.
 
@@ -50,9 +114,9 @@ Tiles and objects are product concepts. An object may be rendered using backgrou
 
 ### Player movement
 
-Movement should feel like the original NES Zelda: continuous pixel movement while a direction is held, four cardinal directions, and directional walking animation for the 16 by 16 avatar. The player must not jump a full tile for each movement step or move diagonally. Releasing directional input stops movement. Direction changes use alignment to the 8 pixel grid, retaining the current axis until a valid turning point when input remains held. Simultaneous direction inputs resolve consistently to one direction.
+Movement should feel like the original NES Zelda: continuous pixel movement while a direction is held, four cardinal directions, and directional walking animation for the 16 by 16 avatar. The player must not jump a full tile for each movement step or move diagonally. Releasing directional input stops movement. Direction changes use alignment to the 8 pixel grid, retaining the current axis until a valid turning point when input remains held. Reversing direction is immediate; a blocked player may turn away without first reaching an inaccessible alignment. Simultaneous direction inputs resolve consistently to one direction.
 
-Every object has an explicit solid or non-solid property, independent of whether it occupies 1 by 1 or 2 by 2 tiles or is rendered with background tiles or sprites. The player cannot walk over solid objects. Non-solid objects permit walking over their footprint, provided the underlying terrain is walkable. Collision follows the Zelda NES movement/collision approach: check the avatar's walking footprint in the intended movement direction before advancing, and stop at blocking terrain or objects without clipping through them. All occupied cells of a solid multi-tile object participate in collision. The visible 16 by 16 sprite and its walking footprint are distinct; the precise collision footprint remains a tuning decision.
+Every object has an explicit solid or non-solid property, independent of its rectangular footprint or whether it is rendered with background tiles or sprites. The player cannot walk over solid objects. Non-solid objects permit walking over their footprint, provided the underlying terrain is walkable. Collision follows the Zelda NES movement/collision approach: check the avatar's walking footprint in the intended movement direction before advancing, and stop at blocking terrain or objects without clipping through them. All occupied cells of a solid multi-tile object participate in collision. The visible 16 by 16 sprite and its walking footprint are distinct; the precise collision footprint remains a tuning decision.
 
 Each avatar must display facing up, down, left, and right, with a two-frame walking cycle for each direction: eight directional walk frames, each 16 by 16 pixels. Alternate the two frames during actual movement; when stopped or blocked, stop the walking cycle and retain the last facing direction in a standing pose. Standard avatars and future custom avatars must support the same directional frame layout.
 
@@ -185,8 +249,8 @@ Limited custom tile and sprite creation and avatar sprite customization are spec
 - Held directional input produces smooth, four-direction Zelda-inspired walking with directional animation, aligned turns, predictable collision, and comparable PAL/NTSC speed.
 - Every avatar displays up, down, left, and right facing with a two-frame walking cycle in each direction; the cycle stops when stationary or blocked and preserves facing.
 - In all four facing directions, building places, replaces, or removes content in front of the avatar rather than underneath it. The preview matches the affected tile or complete object footprint; multi-tile placement does not overlap the avatar's walking footprint.
-- Solid 1 by 1 and 2 by 2 objects block the player's walking footprint from every approach direction, without clipping. Non-solid objects allow passage over walkable underlying terrain. These behaviors survive saving and snapshot reload.
-- The standard catalog includes both 1 by 1 and 2 by 2 tile objects. Full footprints survive placement, selection, removal, save, and snapshot reload, including boundary validation.
+- Solid objects, including large rectangular trees and cottage pieces, block the player's walking footprint from every approach direction, without clipping. Non-solid objects allow passage over walkable underlying terrain. These behaviors survive saving and snapshot reload.
+- The standard catalog includes 1 by 1 and 2 by 2 objects, larger trees, and rectangular cottage pieces. Full footprints survive placement, selection, removal, save, and snapshot reload, including boundary validation.
 - The 2 by 2 door functions as one entrance; moving or removing it preserves the interior and exiting remains reliable.
 - A player can claim one plot, build its exterior and interior, save in the browser, and recover the saved content in a fresh snapshot.
 - A player can explore included neighbors and enter their houses without gaining write access to those exhibits.
@@ -201,9 +265,9 @@ Limited custom tile and sprite creation and avatar sprite customization are spec
 ## Decisions to resolve before implementation
 
 - Confirmed: 1 MiB ASCII8, MSX1, 64 KB RAM. Validate the intended flash cartridge on real hardware.
-- Revised requirement: 8 by 8 pixel base tiles; 16 by 16 sprites, including the four selectable avatar appearances; both 1 by 1 and 2 by 2 tile catalog objects; a 2 by 2 door. Retain up to 32 decorative objects per space, with background patterns available for decoration. Implemented in format 2; original object IDs retain their one-tile sizes, and new IDs provide larger objects.
+- Revised requirement: 8 by 8 pixel base tiles; 16 by 16 sprites, including the four selectable avatar appearances; both 1 by 1 and 2 by 2 tile catalog objects; a 2 by 2 door. Retain up to 32 decorative objects per space, with background patterns available for decoration. Implemented in format 3; IDs 0–11 retain their previous sizes, and new IDs provide larger rectangular objects.
 - Implemented: Zelda NES-inspired pixel movement and collision, explicit solid/non-solid objects, and two-frame walking animation for all four facing directions. Walking targets 90 pixels/second using BIOS refresh rate; the walking footprint is an 8 by 8 feet region at sprite offset (4,8). Perpendicular turns use 8-pixel alignment; simultaneous input prioritizes left, right, up, then down. PAL/NTSC emulator tests cover these choices.
-- Implemented: whole-object replacement/removal, footprint validation, and version-2 settlement/snapshot encoding. Read-time migration preserves legacy maps and objects and relocates an entrance only when necessary for its new footprint; the next owner save persists a new version-2 revision.
+- Implemented: whole-object replacement/removal, footprint validation, and version-3 settlement/snapshot encoding. Read-time migration preserves v2 content unchanged except its version. V1 migration preserves maps and objects and relocates an entrance only when necessary for its 2 by 2 footprint; the next owner save persists a new version-3 revision.
 - Define custom tile and sprite quotas, artwork and animation formats, revision retention, and their reserved snapshot budget before finalizing the storage and ROM formats.
 - Confirmed: invitation-based registration with username/password.
 - Confirmed: manual selection from available map locations; initial claims are bounded to coordinates -100 through 100.

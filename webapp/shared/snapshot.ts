@@ -9,7 +9,7 @@ export function assembleSnapshot(core: Uint8Array, plots: SnapshotPlot[], center
   const rom = new Uint8Array(ROM_SIZE).fill(255);
   rom.set(core);
   const header = new DataView(rom.buffer, BANK_SIZE * 4, BANK_SIZE);
-  rom.set([77, 83, 88, 86, 2, 9, 9, 0], BANK_SIZE * 4);
+  rom.set([77, 83, 88, 86, 3, 9, 9, 0], BANK_SIZE * 4);
   const ownsRegion = own && Math.abs(own.x - centerX) <= 4 && Math.abs(own.y - centerY) <= 4;
   header.setUint8(8, ownsRegion ? (own.y - centerY + 4) * 9 + own.x - centerX + 4 : 255);
   header.setUint8(9, 40);

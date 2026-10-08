@@ -6,6 +6,7 @@ These instructions apply to all agents working in this repository, including spa
 
 - `SPEC.md`: product intent, scope, technical choices, and open decisions. Read it before extending the product.
 - `msx/`: MSX1 game source, assets, build tooling, and MegaROM generation inputs.
+- `msx/art/ART-GUIDE.md`: medieval art direction and current native graphics study. Its editable source is `msx/art/herbalist.mjs`; build with `node msx/tools/build-art-study.mjs` and validate with `python3 msx/tests/run-art-study.py`. The study remains an isolated preview; production artwork also imports these glyphs through `msx/tools/assets.mjs`.
 - `webapp/`: React, Vite, and TypeScript website with its Cloudflare Worker backend. Run web app commands from this directory.
 - `webapp/src/`: frontend components and styles.
 - `webapp/worker/`: backend API handlers.
@@ -71,5 +72,6 @@ C-BIOS emulator checks do not replace release validation on suitable MSX1 BIOS c
 ## Updated graphics and movement
 
 - Keep `webapp/shared/catalog.ts` as the standard footprint/solidity definition; `msx/tools/assets.mjs` generates `msx/assets.generated.h` and original Village artwork. The main ROM build runs this generator.
-- Settlement and snapshot format 2 uses 16×16 sprites, two walk frames per direction, pixel movement, facing-based building, and 1×1/2×2 objects. Preserve legacy saved content through the documented read-time migration; do not silently reinterpret old object IDs as larger objects.
+- Settlement and snapshot format 3 uses 16×16 sprites, two walk frames per direction, pixel movement, facing-based building, and rectangular objects with explicit width/height. IDs 0–11 keep their existing footprints; new IDs add trees, furnishings, and cottage pieces. Preserve legacy saved content through the documented read-time migration; do not silently reinterpret old object IDs as larger objects.
+- Normal play reserves no font slots. Text temporarily takes over either rows 16–23 or the whole screen. Keep display modes modal, restore affected pattern/color/name tables on dismissal, and run `python3 msx/tests/run.py display` after changing this behavior. Bridge byte 31 exposes display mode for diagnostics.
 - The local Zelda reference at `/Users/jannone/Documents/prj/msx/test-zelda-nes-decomp/zelda1-disassembly` is read-only. Inspect movement/collision for inspiration; do not build, regenerate, modify, or change Git state there.

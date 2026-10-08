@@ -16,7 +16,7 @@ assert.throws(() => validateSettlement({ ...s, exteriorObjects: [{ kind: 8, x: 4
 assert.throws(() => validateSettlement({ ...s, formatVersion: 1 }), /Unsupported/);
 const legacy = { ...initialSettlement(), formatVersion: 1, door: { x: 31, y: 23 }, exteriorObjects: [{ kind: 3, x: 30, y: 22 }] };
 const migrated = migrateSettlement(legacy);
-assert.equal(migrated.formatVersion, 2);
+assert.equal(migrated.formatVersion, 3);
 assert.deepEqual(migrated.exterior, legacy.exterior);
 assert.deepEqual(migrated.interior, legacy.interior);
 assert.deepEqual(migrated.exteriorObjects, legacy.exteriorObjects);
@@ -24,4 +24,21 @@ assert.ok(migrated.door.x <= 30 && migrated.door.y <= 22);
 assert.deepEqual(migrateSettlement(migrated), migrated);
 assert.deepEqual(decodeSettlement(encodeSettlement(migrated)), migrated);
 assert.equal(legacy.formatVersion, 1, 'migration must not mutate historical records');
-console.log('PASS v2 round trip, full footprints, overlap, door bounds, catalog authority, v1 migration');
+console.log('PASS v3 round trip, full footprints, overlap, door bounds, catalog authority, v1 migration');
+
+const rectangular = {...initialSettlement(), door:null, exteriorObjects:[{kind:12,x:27,y:19},{kind:13,x:24,y:20},{kind:16,x:23,y:22}]};
+assert.deepEqual(decodeSettlement(encodeSettlement(rectangular)),rectangular);
+for (const object of [{kind:12,x:28,y:19},{kind:13,x:24,y:21},{kind:16,x:31,y:23}]) assert.throws(()=>validateSettlement({...rectangular,exteriorObjects:[object]}),/footprint/);
+const version2={...initialSettlement(),formatVersion:2,exteriorObjects:[{kind:8,x:29,y:21}]};
+assert.deepEqual(migrateSettlement(version2),{...version2,formatVersion:3});
+assert.throws(()=>validateSettlement(version2),/Unsupported/);
+console.log('PASS v3 rectangles, edge bounds, v2 preservation and old-save rejection');
+
+// Building pieces fit exactly at the lower/right edges; every occupied cell counts.
+for (const [kind,x,y] of [[28,26,22],[29,30,21]]) {
+ const cottage={...initialSettlement(),door:null,exteriorObjects:[{kind,x,y}]};
+ assert.deepEqual(decodeSettlement(encodeSettlement(cottage)),cottage);
+ assert.throws(()=>validateSettlement({...cottage,exteriorObjects:[{kind,x:x+1,y}]}),/footprint/);
+ assert.throws(()=>validateSettlement({...cottage,exteriorObjects:[{kind,x,y:y+1}]}),/footprint/);
+}
+console.log('PASS cottage roof and wall full-footprint bounds and binary round trip');

@@ -129,10 +129,10 @@ void renderSection(u8 section) {
 void catalogList(void){u8 i;catalogCount=0;for(i=0;i<(objectMode?OBJECT_COUNT:16);++i)if(!objectMode||objectCategory[i]==catalogCategory)catalogItems[catalogCount++]=i;catalogIndex=0;for(i=0;i<catalogCount;++i)if(catalogItems[i]==selection)catalogIndex=i;selection=catalogItems[catalogIndex];}
 void cursor(u8 x,u8 y,u8 w,u8 h,u8 color){
  u8 i,pattern;
- for(i=1;i<5;++i)VDP_SetSpriteSM1(i,0,212,0,0);
- if(h<=2 && w<=2){pattern=w==1?(h==1?128:136):(h==1?140:132);VDP_SetSpriteSM1(1,x,y-1,pattern,color);}
- else if(h<=2){pattern=h==1?160:168;VDP_SetSpriteSM1(1,x,y-1,pattern,color);VDP_SetSpriteSM1(2,x+w*8-8,y-1,pattern+4,color);}
- else{VDP_SetSpriteSM1(1,x,y-1,144,color);VDP_SetSpriteSM1(2,x+w*8-8,y-1,148,color);VDP_SetSpriteSM1(3,x,y+h*8-9,152,color);VDP_SetSpriteSM1(4,x+w*8-8,y+h*8-9,156,color);}
+ for(i=2;i<6;++i)VDP_SetSpriteSM1(i,0,212,0,0);
+ if(h<=2 && w<=2){pattern=w==1?(h==1?64:72):(h==1?76:68);VDP_SetSpriteSM1(2,x,y-1,pattern,color);}
+ else if(h<=2){pattern=h==1?96:104;VDP_SetSpriteSM1(2,x,y-1,pattern,color);VDP_SetSpriteSM1(3,x+w*8-8,y-1,pattern+4,color);}
+ else{VDP_SetSpriteSM1(2,x,y-1,80,color);VDP_SetSpriteSM1(3,x+w*8-8,y-1,84,color);VDP_SetSpriteSM1(4,x,y+h*8-9,88,color);VDP_SetSpriteSM1(5,x+w*8-8,y+h*8-9,92,color);}
 }
 void draw(void) {
  volatile u8* d=data();u16 i,base=mapOffset(),obj=objectOffset();u8 avatar=ownerData[1],mode,first=0;
@@ -141,7 +141,7 @@ void draw(void) {
  if(mode!=displayMode){if(mode!=DISPLAY_CATALOG && displayMode!=DISPLAY_CATALOG)first=2;redraw=1;}
  displayMode=mode;
  if(redraw) {
-  VDP_EnableDisplay(FALSE);for(i=0;i<5;++i)VDP_SetSpriteSM1(i,0,212,0,0);
+  VDP_EnableDisplay(FALSE);for(i=0;i<6;++i)VDP_SetSpriteSM1(i,0,212,0,0);
   Mem_Set(0,textMask,96);
   Mem_Copy((const void*)(d+base),screen,MAP_SIZE);
   for(i=0;i<32;++i){u16 p=obj+i*3;u8 kind=d[p];if(kind<OBJECT_COUNT && d[p+1]+objectWidth[kind]<=32 && d[p+2]+objectHeight[kind]<=24)paintObject(kind,d[p+1],d[p+2]);}
@@ -161,13 +161,16 @@ void draw(void) {
   for(i=first;i<3;++i)renderSection(i);
   VDP_EnableDisplay(TRUE);
  }
- if(palette){VDP_SetSpriteSM1(0,0,212,0,0);cursor((1+(catalogIndex%3)*10)*8,(5+((catalogIndex%6)/3)*8)*8,targetSize,targetHeight,15);}
+ if(palette){VDP_SetSpriteSM1(0,0,212,0,0);VDP_SetSpriteSM1(1,0,212,0,0);cursor((1+(catalogIndex%3)*10)*8,(5+((catalogIndex%6)/3)*8)*8,targetSize,targetHeight,15);}
  else {
   if(avatar>=4)avatar=0;
-  if(noticeFrames && py+16>128)VDP_SetSpriteSM1(0,0,212,0,0);
-  else VDP_SetSpriteSM1(0,px,py-1,(avatar*8+facing*2+walkFrame)*4,avatar==0?15:avatar==1?10:avatar==2?9:7);
+  if(noticeFrames && py+16>128){VDP_SetSpriteSM1(0,0,212,0,0);VDP_SetSpriteSM1(1,0,212,0,0);}
+  else {
+   VDP_SetSpriteSM1(0,px,py-1,(facing*2+walkFrame)*8,avatar==0?15:avatar==1?10:avatar==2?9:7);
+   VDP_SetSpriteSM1(1,px,py-1,(facing*2+walkFrame)*8+4,avatar==1?15:11);
+  }
   if(!noticeFrames && editing && targetX>=0 && targetY>=0 && targetX+targetSize<=32 && targetY+targetHeight<=24)cursor(targetX*8,targetY*8,targetSize,targetHeight,targetValid?15:8);
-  else {for(i=1;i<5;++i)VDP_SetSpriteSM1(i,0,212,0,0);}
+  else {for(i=2;i<6;++i)VDP_SetSpriteSM1(i,0,212,0,0);}
  }
  bridge[7]=inside;bridge[13]=currentSlot;bridge[14]=(px+8)/8;bridge[15]=(py+12)/8;
  bridge[16]=selection;bridge[17]=objectMode;bridge[18]=editing;
@@ -293,7 +296,7 @@ void main(void) {
  VDP_EnableDisplay(FALSE);
 
  displayMode=DISPLAY_SCENE;noticeFrames=0;
- VDP_SetSpriteFlag(VDP_SPRITE_SIZE_16);VDP_LoadSpritePattern((const u8*)avatarPatterns,0,176);VDP_DisableSpritesFrom(5);
+ VDP_SetSpriteFlag(VDP_SPRITE_SIZE_16);VDP_LoadSpritePattern((const u8*)avatarPatterns,0,112);VDP_DisableSpritesFrom(6);
  for(i=0;i<10;++i)previousKeys[i]=255;
  bridge[0]='M';bridge[1]='S';bridge[2]='X';bridge[3]='V';bridge[12]=ownSlot;bridge[19]=1;
  draw();while(1){Halt();tick();}

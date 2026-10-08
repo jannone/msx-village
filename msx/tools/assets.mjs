@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { OBJECT_CATALOG, SOLID_TILES, OBJECT_CATEGORIES } from '../../webapp/shared/catalog.ts';
 
-import { tiles as medievalTiles, objects as medievalObjects } from '../art/herbalist.mjs';
+import { tiles as medievalTiles, objects as medievalObjects, avatars as medievalAvatars } from '../art/herbalist.mjs';
 // Original Village artwork. The shared catalog generates the C collision and
 // footprint tables as well, preventing renderer/validator disagreement.
 const blank = () => Array.from({ length: 16 }, () => Array(16).fill(0));
@@ -26,19 +26,11 @@ for (let kind = 0; kind < 5; kind++) {
   for (const [qx, qy] of [[0, 0], [8, 0], [0, 8], [8, 8]]) background.push(Array.from({ length: 8 }, (_, y) => p[qy + y].slice(qx, qx + 8).reduce((n, bit) => n * 2 + bit, 0)));
 }
 const sprites = [];
-for (let avatar = 0; avatar < 4; avatar++) for (let face = 0; face < 4; face++) for (let step = 0; step < 2; step++) {
-  const p = blank();
-  rect(p, 5, 2, 6, 5); rect(p, 6, 7, 4, 2); rect(p, 4, 9, 8, 3);
-  if (avatar === 1) rect(p, 3, 2, 10, 1);
-  if (avatar === 2) { rect(p, 4, 1, 8, 1); rect(p, 3, 2, 1, 3); rect(p, 12, 2, 1, 3); }
-  if (avatar === 3) { rect(p, 6, 0, 4, 2); rect(p, 3, 4, 1, 3); rect(p, 12, 4, 1, 3); }
-  if (face === 0) rect(p, 6, 2, 4, 2, 0);
-  else if (face === 1) { rect(p, 6, 4, 1, 1, 0); rect(p, 9, 4, 1, 1, 0); }
-  else { rect(p, face === 2 ? 4 : 11, 4, 1, 2); rect(p, face === 2 ? 5 : 10, 4, 1, 1, 0); }
-  rect(p, step ? 4 : 5, 12, 3, step ? 4 : 3);
-  rect(p, step ? 9 : 8, 12, 3, step ? 3 : 4);
-  // TMS9918 16x16 shape: all 16 left rows, then all 16 right rows.
-  sprites.push([...Array.from({ length: 16 }, (_, y) => p[y].slice(0, 8).reduce((n, bit) => n * 2 + bit, 0)), ...Array.from({ length: 16 }, (_, y) => p[y].slice(8).reduce((n, bit) => n * 2 + bit, 0))]);
+// Share the art-study traveler across the four selectable outfit palettes.
+// Each directional frame is a pair of non-overlapping 16x16 color masks.
+for (const frame of medievalAvatars) {
+  if (frame.length !== 16 || frame.some(row => row.length !== 16 || /[^.BY]/.test(row))) throw Error('Invalid avatar frame');
+  for (const color of ['B', 'Y']) sprites.push([0, 8].flatMap(x => frame.map(row => [...row.slice(x, x + 8)].reduce((n, pixel) => n * 2 + +(pixel === color), 0))));
 }
 for (const size of [8, 16]) {
   const p = blank();

@@ -44,7 +44,7 @@ proc run {} {
   check {[debug read_block VRAM 0 4096] eq [string range [lindex $original 0] 0 4095]} "top patterns modified"
   check {[debug read_block VRAM 0x2000 4096] eq [string range [lindex $original 1] 0 4095]} "top colors modified"
   check {[debug read_block VRAM 0x1800 512] eq [string range [lindex $original 2] 0 511]} "top scene modified"
-  check {[debug read VRAM 0x1b00]==212 && [debug read VRAM 0x1b04]==212} "sprite leaks over panel"
+  check {[debug read VRAM 0x1b00]==212 && [debug read VRAM 0x1b04]==212 && [debug read VRAM 0x1b08]==212} "sprite leaks over panel"
   set x [read 28];set y [read 29]
   key 8 128;key 6 32;key 7 1
   check {[read 28]==$x && [read 29]==$y} "walking behind panel"
@@ -53,7 +53,7 @@ proc run {} {
   check {[read 31]==0 && [graphics] eq $original} "bottom section restoration"
   key 6 64
   check {[read 31]==2} "catalog not fullscreen"
-  check {[debug read VRAM 0x1b00]==212} "avatar visible over catalog"
+  check {[debug read VRAM 0x1b00]==212 && [debug read VRAM 0x1b04]==212} "avatar visible over catalog"
   key 8 128;key 6 128;key 8 64
   check {[read 28]==$x && [read 29]==$y} "walking behind catalog"
   key 7 4

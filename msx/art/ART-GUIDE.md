@@ -57,14 +57,17 @@ house proportions, door visibility, furniture recognition, and walking clearance
 The current roof, wall, floor, and foliage textures are intentionally candidates
 for refinement after seeing their native output.
 
-## Avatar experiment
+## Avatar integration
 
 One 16x16 traveler has up/down/left/right appearances and two walking frames per
 direction. Two overlapping single-color sprites supply a blue silhouette and
 yellow face/trim. This consumes two hardware sprites on each affected scanline;
-the production editor cursor and any later sprite objects must fit the remaining
-budget. This study does not establish that a full decorated production scene with
-additional hardware sprites is safe.
+the production editor cursor uses at most two more on a scanline. The main game
+now imports these same frames with four selectable outfit palettes (Snow, Sunshine,
+Poppy, Sky). Yellow face/trim is used except with Sunshine, which uses white for
+contrast. Production tests cover both layers, every catalog footprint in all four
+directions, and layer hiding/restoration during temporary text interfaces. Future
+sprite objects must respect the remaining scanline budget.
 
 ## Reproducible source and review
 

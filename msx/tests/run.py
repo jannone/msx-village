@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 import hashlib, os, subprocess, sys, re
 root=Path(__file__).resolve().parents[1]
 fixture=sys.argv[1] if len(sys.argv)>1 else 'startup'
-if fixture not in ('startup','interaction','display'): raise SystemExit('Unknown test fixture')
+if fixture not in ('startup','interaction','display','avatar'): raise SystemExit('Unknown test fixture')
 output=root/'out/tests';output.mkdir(parents=True,exist_ok=True)
 
 def check(case):

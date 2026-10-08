@@ -56,12 +56,15 @@ proc run {} {
   set frames {};set patterns {};set attribute [expr {[debug read {VDP regs} 5]*128}]
   for {set i 0} {$i<10} {incr i} {pause 0.02;lappend frames [read 21];lappend patterns [debug read VRAM [expr {$attribute+2}]]}
   assert {0 in $frames && 1 in $frames} "two walk frames missing: dir=$direction frames=$frames"
-  assert {[expr {$avatar*32+$direction*8+4}] in $patterns} "second walk frame was not rendered"
+  assert {[expr {$direction*16+8}] in $patterns} "second walk frame was not rendered"
   assert {[read 20]==$direction} "facing direction"
   keymatrixup 8 $mask;pause 0.15
   assert {[read 21]==0 && [read 22]==0 && [read 20]==$direction} "idle animation/facing dir=$direction frame=[read 21] moving=[read 22] facing=[read 20]"
   set attribute [expr {[debug read {VDP regs} 5]*128}]
-  assert {[debug read VRAM [expr {$attribute+2}]]==$avatar*32+$direction*8} "directional sprite pattern"
+  assert {[debug read VRAM [expr {$attribute+2}]]==$direction*16} "directional sprite pattern"
+  assert {[debug read VRAM [expr {$attribute+6}]]==$direction*16+4} "second color directional pattern"
+  assert {[debug read VRAM $attribute]==[debug read VRAM [expr {$attribute+4}]] && [debug read VRAM [expr {$attribute+1}]]==[debug read VRAM [expr {$attribute+5}]]} "avatar layers misaligned"
+  assert {[debug read VRAM [expr {$attribute+3}]]==[lindex {15 10 9 7} $avatar] && [debug read VRAM [expr {$attribute+7}]]==[lindex {11 15 11 11} $avatar]} "avatar palette layers"
  }
  }
  debug write memory 0xd001 0

@@ -15,13 +15,13 @@ these fixtures.
 - The two-layer, four-direction animated traveler in four outfit palettes.
 - Every glyph used by both sample rooms is reachable through the production
   terrain/object catalog. There are 23 terrain tools (including the entrance
-  tool) and 32 decorative object definitions.
+  tool) and 20 decorative object definitions.
 
-Terrain IDs 16–22 append tufts, cobblestones, riverbank, soil, roof eaves, dark
-surrounds, and rug border. Object IDs 30–31 append the larger bed and worktable.
-All earlier IDs retain dimensions, collision, and storage meanings. The binary
-settlement remains format 3 / 1744 bytes; terrain IDs now have an explicit mapping
-to native artwork slots. No D1 migration is required.
+The current format-4 catalog has 20 medieval objects, without the 12 prototype
+objects or Classic category. The larger bed and worktable are IDs 18–19.
+The binary layout remains 1744 bytes. Artwork slots are generated without reserved
+ranges. Old saves are rejected rather than migrated; current plot content is
+rebuilt when the catalog changes.
 
 The complete exterior needs 14 placed objects; the interior needs 25. Both remain
 below the 32-object limit. `production-herbalist.mjs` fails if any study glyph is
@@ -69,7 +69,9 @@ The knight/cartographer collections, custom asset authoring, and real hardware
 acceptance remain separate work. This milestone completes the original herbalist
 study's refinement and production integration.
 
-## Verified build — 2026-10-08
+## Historical verified build — 2026-10-08
+
+These hashes describe the pre-cleanup format-3 build.
 
 PAL (50 Hz) and NTSC (60 Hz) passed: two complete-room production checks, two
 independent study checks, and sixteen owner/visitor startup, interaction, display,
@@ -83,3 +85,11 @@ owner buffer. The tested resident core SHA-256 is
 `27247527ecef2f1e7f3bcfd8f2ece2316f5d4e42126612b7d05a99cdeefdcf07`.
 The deterministic complete-room production preview SHA-256 is
 `79d45cf173d5020efe978a18bedcc125684d374bd3925063b765601a70a0688f`.
+
+## Greenfield catalog cleanup — 2026-10-09
+
+The production atlas now uses 98 patterns. Current format 4 removes the prototype
+category, fixed artwork slots, and old save readers. The herbalist layout and
+all 39 placements remain representable. Updated art-sheet import/export supports
+only named artwork, avatar layers, and cursors. The current resident core SHA-256
+is `bfb7cdafe7b67583e71c925085c957a77cd12ca0a000b193aba0b3af1921c124`.

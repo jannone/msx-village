@@ -18,7 +18,7 @@ const code = /^_CODE\s+([A-Fa-f0-9]+)\s+([A-Fa-f0-9]+)/m.exec(map);
 if (!code || parseInt(code[1],16)+parseInt(code[2],16)>0xa000) throw new Error('Resident code overlaps switched ROM window');
 const { initialSettlement } = await import('../../webapp/shared/settlement.ts');
 const neighbor = initialSettlement();
-neighbor.interiorObjects.push({kind:3,x:16,y:10});
+neighbor.interiorObjects.push({kind:14,x:16,y:10});
 const plots = [{x:0,y:0,revision:0,username:'Demo',content:initialSettlement()},{x:-1,y:0,revision:0,username:'Neighbor',content:neighbor}];
 writeFileSync(resolve(cwd,'out/village-demo.rom'),assembleSnapshot(rom.subarray(0,24576),plots,0,0,{x:0,y:0,revision:0}));
 writeFileSync(resolve(cwd,'out/village-visitor.rom'),assembleSnapshot(rom.subarray(0,24576),plots,0,0));

@@ -26,13 +26,19 @@ proc run {} {
  check {[read 19]==1 && [read 31]==0} "text-free startup"
  check {[read 30] in {50 60}} "refresh"
  for {set b 0} {$b<3} {incr b} {
-  binary scan [debug read_block VRAM [expr {$b*2048+96*8}] 768] cu* bytes
-  check {[lsort -unique $bytes] eq "0"} "font resident in scene"
+  # The entire generated atlas occupies stable slots, including art IDs above
+  # 95. Verify ROM art rather than assuming these are unused font slots.
+  set artBytes [expr {$::env(VILLAGE_ART_COUNT)*8}]
+  check {[debug read_block VRAM [expr {$b*2048}] $artBytes] eq [debug read_block memory $::env(VILLAGE_VAR_scenePatterns) $artBytes]} "scene patterns differ from ROM"
+  if {$artBytes<2048} {
+   binary scan [debug read_block VRAM [expr {$b*2048+$artBytes}] [expr {2048-$artBytes}]] cu* bytes
+   check {[lsort -unique $bytes] eq "0"} "font resident in scene"
+  }
  }
  # Different terrain across all sections, with a large object crossing row 16.
  if {$::env(VILLAGE_OWN_SLOT)!=255} {
   for {set i 0} {$i<768} {incr i} {debug write memory [expr {0xd010+$i}] [expr {$i%13}]}
-  debug write memory 0xd610 8;debug write memory 0xd611 20;debug write memory 0xd612 15
+  debug write memory 0xd610 3;debug write memory 0xd611 20;debug write memory 0xd612 15
   var redraw 1;var collisionDirty 1;pause;settle
  }
  set original [graphics];set data [debug read_block memory 0xd000 1744]

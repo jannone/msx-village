@@ -72,7 +72,7 @@ C-BIOS emulator checks do not replace release validation on suitable MSX1 BIOS c
 ## Updated graphics and movement
 
 - Keep `webapp/shared/catalog.ts` as the standard terrain/art-reference and object footprint/solidity definition; `msx/tools/assets.mjs` generates `msx/assets.generated.h` and original Village artwork. The main ROM build runs this generator.
-- Settlement and snapshot format 3 uses 16×16 sprites, two walk frames per direction, pixel movement, facing-based building, and rectangular objects with explicit width/height. IDs 0–11 keep their existing footprints; new IDs add trees, furnishings, and cottage pieces. Preserve legacy saved content through the documented read-time migration; do not silently reinterpret old object IDs as larger objects.
+- Current settlement/snapshot format is 4. This is a greenfield, single-author/single-user project: backward compatibility is not required. Remove obsolete assets and code instead of maintaining old IDs or read-time migrations. Bump format identifiers when meanings change so stale ROM saves are rejected; coordinate current plot regeneration with deployment.
 - Normal play reserves no font slots. Text temporarily takes over either rows 16–23 or the whole screen. Keep display modes modal, restore affected pattern/color/name tables on dismissal, and run `python3 msx/tests/run.py display` after changing this behavior. Bridge byte 31 exposes display mode for diagnostics.
 - The local Zelda reference at `/Users/jannone/Documents/prj/msx/test-zelda-nes-decomp/zelda1-disassembly` is read-only. Inspect movement/collision for inspiration; do not build, regenerate, modify, or change Git state there.
 
@@ -83,8 +83,8 @@ C-BIOS emulator checks do not replace release validation on suitable MSX1 BIOS c
 - After `node msx/tools/build.mjs`, run `node msx/tools/build-herbalist-demo.mjs`
   and `python3 msx/tests/run.py herbalist` to compare every production scene cell
   with the study artwork and exercise entrance, catalog, and panel restoration.
-- Terrain storage IDs are separate from generated VDP artwork slots. Append new
-  terrain/object IDs; preserve existing meanings, sizes, and solidity.
+- Terrain storage IDs are separate from generated VDP artwork slots. Catalog
+  IDs may be reorganized; keep the current renderer, editor, and codec in sync.
 - The generator and native renderer must agree with `TERRAIN_CATALOG` for names,
   collision, validation, and art mapping. Do not reintroduce a hard-coded 16-tile
   limit when extending terrain.

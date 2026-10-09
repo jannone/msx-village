@@ -13,7 +13,7 @@ const suffix = randomBytes(4).toString('hex');
 const tokens = Array.from({length:3},()=>randomBytes(32).toString('hex'));
 const time = Math.floor(Date.now()/1000);
 const sql = tokens.map(t=>`INSERT INTO invitations VALUES ('${createHash('sha256').update(t).digest('hex')}',${time},${time+3600});`).join('\n');
-execFileSync(resolve(cwd,'node_modules/.bin/wrangler'),['d1','execute','DB','--local','--command',sql],{cwd,stdio:'pipe'});
+execFileSync(resolve(cwd,'node_modules/.bin/wrangler'),['d1','execute','DB','--local',...(process.env.VILLAGE_TEST_PERSIST_TO?['--persist-to',process.env.VILLAGE_TEST_PERSIST_TO]:[]),'--command',sql],{cwd,stdio:'pipe'});
 async function api(path,method='GET',value,cookie='',origin=base) {
  const response = await fetch(base+path,{method,headers:{Origin:origin,'Content-Type':'application/json',Cookie:cookie},body:value===undefined?undefined:JSON.stringify(value)});
  return {status:response.status,data:await response.json(),cookie:response.headers.get('Set-Cookie')?.split(';')[0]??''};
@@ -32,30 +32,24 @@ const claimed=claims.find(c=>c.status===201).data.plot;
 assert.equal((await api('/api/plots/claim','POST',{x:claimed.x,y:claimed.y},b.cookie)).status,409);
 assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:initialSettlement()},b.cookie)).status,404,'another account cannot save the owned plot');
 assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:initialSettlement(),owner_id:b.data.user.id},a.cookie)).status,400);
-// Existing production snapshots may still carry v1 JSON. Exercise the read-time
-// upgrade in a real D1 row, not just the pure migration function.
-const legacy={...initialSettlement(),formatVersion:1,door:{x:31,y:23}};
-execFileSync(resolve(cwd,'node_modules/.bin/wrangler'),['d1','execute','DB','--local','--command',`UPDATE plots SET content='${JSON.stringify(legacy)}' WHERE id='${claimed.id}'`],{cwd,stdio:'pipe'});
-const upgraded=await api('/api/me','GET',undefined,a.cookie);
-assert.equal(upgraded.data.plot.content.formatVersion,3);
-assert.deepEqual(upgraded.data.plot.content.door,{x:30,y:22});
-assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:legacy},a.cookie)).status,400,'old ROM saves must not reinterpret the v3 catalog');
+// Unsupported saves are rejected instead of being migrated or reinterpreted.
+for(const formatVersion of [1,2,3])assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:{...initialSettlement(),formatVersion}},a.cookie)).status,400);
 for (const malformed of [
- {...initialSettlement(),exteriorObjects:[{kind:8,x:31,y:3}]},
- {...initialSettlement(),exteriorObjects:[{kind:8,x:4,y:4},{kind:4,x:5,y:5}]},
- {...initialSettlement(),exteriorObjects:[{kind:4,x:17,y:13}]},
- {...initialSettlement(),exteriorObjects:[{kind:8,x:3,y:3,solid:false}]},
+ {...initialSettlement(),exteriorObjects:[{kind:3,x:31,y:3}]},
+ {...initialSettlement(),exteriorObjects:[{kind:3,x:4,y:4},{kind:8,x:5,y:5}]},
+ {...initialSettlement(),exteriorObjects:[{kind:8,x:17,y:13}]},
+ {...initialSettlement(),exteriorObjects:[{kind:3,x:3,y:3,solid:false}]},
  {...initialSettlement(),door:{x:31,y:23}},
- {...initialSettlement(),exteriorObjects:[{kind:12,x:28,y:10}]},
- {...initialSettlement(),exteriorObjects:[{kind:13,x:20,y:21}]},
- {...initialSettlement(),exteriorObjects:[{kind:12,x:20,y:2},{kind:20,x:24,y:6}]},
+ {...initialSettlement(),exteriorObjects:[{kind:0,x:28,y:10}]},
+ {...initialSettlement(),exteriorObjects:[{kind:1,x:20,y:21}]},
+ {...initialSettlement(),exteriorObjects:[{kind:0,x:20,y:2},{kind:8,x:24,y:6}]},
 ]) assert.equal((await api('/api/settlement','PUT',{expectedRevision:0,settlement:malformed},a.cookie)).status,400,'server validates catalog footprints and properties');
-const first=initialSettlement();first.exterior[0]=7;first.interior[100]=12;first.interiorObjects.push({kind:3,x:5,y:5});first.exteriorObjects.push({kind:8,x:24,y:16},{kind:11,x:27,y:18},{kind:4,x:6,y:3});first.interiorObjects.push({kind:10,x:9,y:9});first.exteriorObjects.push({kind:12,x:20,y:3},{kind:13,x:4,y:15});first.interiorObjects.push({kind:19,x:20,y:4},{kind:18,x:15,y:14});first.avatar=2;first.door={x:1,y:2};
+const first=initialSettlement();first.exterior[0]=7;first.interior[100]=12;first.interiorObjects.push({kind:14,x:5,y:5});first.exteriorObjects.push({kind:3,x:24,y:16},{kind:9,x:27,y:18},{kind:8,x:6,y:3});first.interiorObjects.push({kind:5,x:9,y:9});first.exteriorObjects.push({kind:0,x:20,y:3},{kind:1,x:4,y:15});first.interiorObjects.push({kind:7,x:20,y:4},{kind:6,x:15,y:14});first.avatar=2;first.door={x:1,y:2};
 const saves=await Promise.all([api('/api/settlement','PUT',{expectedRevision:0,settlement:first},a.cookie),api('/api/settlement','PUT',{expectedRevision:0,settlement:initialSettlement()},a.cookie)]);
 assert.deepEqual(saves.map(c=>c.status).sort(),[200,409]);
 // The race may choose either payload. Persist the rich scene explicitly before
 // checking its snapshot, so this cannot pass by round-tripping only a blank plot.
-first.exteriorObjects.push({kind:28,x:8,y:2},{kind:29,x:8,y:4},{kind:29,x:12,y:4});
+first.exteriorObjects.push({kind:16,x:8,y:2},{kind:17,x:8,y:4},{kind:17,x:12,y:4});
 assert.equal((await api('/api/settlement','PUT',{expectedRevision:1,settlement:first},a.cookie)).status,200);
 const me=await api('/api/me','GET',undefined,a.cookie);assert.equal(me.data.plot.revision,2);
 assert.deepEqual(me.data.plot.content,first,'rich scene including cottage pieces persists');

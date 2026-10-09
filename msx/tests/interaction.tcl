@@ -13,11 +13,15 @@ proc read {offset} {debug read memory [expr {0xe000+$offset}]}
 proc assert {condition message} {if {![uplevel 1 [list expr $condition]]} {error $message}}
 proc var {name value} {debug write memory $::env(VILLAGE_VAR_$name) $value}
 proc position {x y dir} {var noticeFrames 0;var collisionDirty 1;var redraw 1;var px $x;var py $y;var facing $dir;var speedFraction 0;var walkDistance 0;pause 0.3;settle}
-proc select {mode kind} {var objectMode $mode;var selection $kind;var redraw 1;pause 0.1;settle}
+proc select {mode kind} {var objectMode $mode;var selection $kind;var redraw 1;pause 0.1;settle;pause 0.05}
 proc flat {} {
  for {set i 0} {$i<768} {incr i} {debug write memory [expr {0xd010+$i}] 0}
  for {set i 0} {$i<32} {incr i} {debug write memory [expr {0xd610+$i*3}] 255}
  debug write memory 0xd004 255;debug write memory 0xd005 255
+}
+proc objectPattern {kind cell} {
+ set offset [debug read memory [expr {$::env(VILLAGE_VAR_objectOffsetTable)+$kind}]]
+ return [debug read memory [expr {$::env(VILLAGE_VAR_objectCells)+$offset+$cell}]]
 }
 proc patternAt {x y expected} {
  set slot [debug read VRAM [expr {0x1800+$y*32+$x}]]
@@ -34,15 +38,15 @@ proc run {} {
  }
  key 7 0x80
  assert {[read 7]==1} "house entry from facing target: x=[read 28] y=[read 29] tx=[read 23] ty=[read 24] room=[read 7] memoryRoom=[debug read memory $::env(VILLAGE_VAR_inside)]"
- key 6 0x20;key 6 0x80;key 8 1
- assert {[debug read memory 0xd670]==0} "interior object placement"
+ key 6 0x20;select 1 11;key 8 1
+ assert {[debug read memory 0xd670]==11} "interior object placement"
  assert {[debug read memory 0xd671]==17 && [debug read memory 0xd672]==21} "build target must be in front of avatar"
  key 7 0x80;assert {[read 7]==0} "house exit"
  key 6 0x20
  select 0 13
  key 7 1
  assert {[debug read memory 0xd004]==255} "whole entrance removal"
- assert {[debug read memory 0xd670]==0} "entrance removal lost interior"
+ assert {[debug read memory 0xd670]==11} "entrance removal lost interior"
  flat
  # Isolated RAM scene setup is used for independent collision cases. All tested
  # actions and movement still use real keyboard input against the running ROM.
@@ -79,11 +83,11 @@ proc run {} {
  pause 0.15;keymatrixup 8 0x20;pause 0.04
  assert {[read 28]%8==0 && [read 29]<96 && [read 20]==0} "aligned turn"
  # Solid and non-solid 2x2 objects, with solid terrain underneath non-solid art.
- debug write memory 0xd610 8;debug write memory 0xd611 18;debug write memory 0xd612 13
+ debug write memory 0xd610 3;debug write memory 0xd611 18;debug write memory 0xd612 13
  position 128 96 3
  key 8 0x80 0.35
  assert {[read 28]==132} "solid large object collision: x=[read 28]"
- debug write memory 0xd610 11
+ debug write memory 0xd610 9
  position 128 96 3;key 8 0x80 0.35
  assert {[read 28]>144} "non-solid object blocked walking x=[read 28] y=[read 29] facing=[read 20] kind=[debug read memory 0xd610]"
  debug write memory [expr {0xd010+13*32+18}] 3
@@ -91,7 +95,7 @@ proc run {} {
  assert {[read 28]==132} "non-solid object bypassed solid terrain"
  flat
  # Solid collision from all four approaches, including rectangular trees and cottage pieces.
- foreach kind {0 8 12 13 16 28 29} {
+ foreach kind {11 3 0 1 4 16 17} {
   debug write memory 0xd610 $kind;debug write memory 0xd611 18;debug write memory 0xd612 13
   foreach {direction x y mask} {3 128 96 0x80 2 208 96 0x10 1 144 80 0x40 0 144 160 0x20} {
    position $x $y $direction;keymatrixdown 8 $mask;pause 0.9
@@ -109,7 +113,7 @@ proc run {} {
  # A horizontal collision stops at x=132 (not an 8-pixel alignment).
  # Turning away and reversing must work without moving into the obstacle.
  flat
- debug write memory 0xd610 13;debug write memory 0xd611 18;debug write memory 0xd612 13
+ debug write memory 0xd610 1;debug write memory 0xd611 18;debug write memory 0xd612 13
  position 128 96 3;key 8 0x80 0.4
  assert {[read 28]==132} "escape setup collision"
  key 8 0x20 0.2
@@ -126,43 +130,43 @@ proc run {} {
   assert {[debug read memory [expr {0xd010+13*32+16}]]==0} "tile placed under feet"
   key 7 1
   assert {[debug read memory [expr {0xd010+$tileY*32+$tileX}]]==0} "facing tile erase"
-  select 1 8
+  select 1 3
   set x [read 23];set y [read 24]
   assert {[read 25]==2 && [read 26]==1} "2x2 preview invalid"
   key 8 1
-  assert {[debug read memory 0xd610]==8 && [debug read memory 0xd611]==$x && [debug read memory 0xd612]==$y} "preview differs from placement: dir=$direction"
+  assert {[debug read memory 0xd610]==3 && [debug read memory 0xd611]==$x && [debug read memory 0xd612]==$y} "preview differs from placement: dir=$direction"
   assert {!($x*8<140 && ($x+2)*8>132 && $y*8<112 && ($y+2)*8>104)} "placement overlaps player's feet"
   pause 2.1
-  assert {[patternAt $x $y 24]} "large object top-left pattern"
-  assert {[patternAt [expr {$x+1}] [expr {$y+1}] 27]} "large object bottom-right pattern"
-  position [expr {$x*8}] [expr {($y+1)*8}] 0;select 1 4
+  assert {[patternAt $x $y [objectPattern 3 0]]} "large object top-left pattern"
+  assert {[patternAt [expr {$x+1}] [expr {$y+1}] [objectPattern 3 3]]} "large object bottom-right pattern"
+  position [expr {$x*8}] [expr {($y+1)*8}] 0;select 1 8
   assert {[read 23]==$x+1 && [read 24]==$y+1} "target bottom-right quadrant actual=[read 23],[read 24] expected=[expr {$x+1}],[expr {$y+1}] pose=[read 28],[read 29] facing=[read 20] kind=[read 16]"
   key 7 1
   assert {[debug read memory 0xd610]==255} "whole object removal from bottom-right quadrant"
  }
  # Rectangular objects use distinct width/height in targeting and replacement.
- foreach kind {12 13 16 28 29} {
+ foreach kind {0 1 4 16 17} {
   foreach direction {0 1 2 3} {
    flat;position 128 96 $direction;select 1 $kind
    set tx [read 23];set ty [read 24]
    set w [debug read memory [expr {$::env(VILLAGE_VAR_objectWidth)+$kind}]]
    set h [debug read memory [expr {$::env(VILLAGE_VAR_objectHeight)+$kind}]]
-   assert {[read 25]==$w && [read 26]==1} "rectangular preview"
+   assert {[read 25]==$w && [read 26]==1} "rectangular preview: kind=$kind dir=$direction width=[read 25] expected=$w valid=[read 26] target=[read 23],[read 24] pose=[read 28],[read 29] selection=[read 16]"
    key 8 1
    assert {[debug read memory 0xd610]==$kind && [debug read memory 0xd611]==$tx && [debug read memory 0xd612]==$ty} "rectangular placement"
    assert {!($tx*8<140 && ($tx+$w)*8>132 && $ty*8<112 && ($ty+$h)*8>104)} "rectangular footprint under feet"
-   position [expr {($tx+$w-2)*8}] [expr {($ty+$h-1)*8}] 0;select 1 4
+   position [expr {($tx+$w-2)*8}] [expr {($ty+$h-1)*8}] 0;select 1 8
    key 7 1
    assert {[debug read memory 0xd610]==255} "rectangular whole-object erase"
   }
  }
  flat
- position 240 160 3;select 1 8;key 8 1
+ position 240 160 3;select 1 3;key 8 1
  assert {[read 26]==0 && [debug read memory 0xd610]==255} "out-of-bounds large placement"
  position 128 96 1;select 0 13;key 8 1
  assert {[debug read memory 0xd004]==16 && [debug read memory 0xd005]==14} "2x2 entrance placement"
  pause 2.1
- assert {[patternAt 16 14 40] && [patternAt 17 15 43]} "2x2 entrance rendering"
+ assert {[patternAt 16 14 [debug read memory $::env(VILLAGE_VAR_doorPatterns)]] && [patternAt 17 15 [debug read memory [expr {$::env(VILLAGE_VAR_doorPatterns)+3}]]]} "2x2 entrance rendering"
  key 7 0x80;assert {[read 7]==1} "new entrance interaction"
  key 7 4;assert {[read 7]==0} "reliable interior escape"
  key 7 2;assert {[read 5]==0 && [read 6]==1} "offline save must preserve edits"
@@ -182,11 +186,11 @@ proc run {} {
  position 128 104 0;key 7 0x80
  assert {[read 7]==1} "neighbor house entry"
  pause 2.1
- assert {[patternAt 16 10 19]} "neighbor bank/furniture missing"
+ assert {[patternAt 16 10 [objectPattern 14 0]]} "neighbor bank/furniture missing"
  key 6 0x20;key 8 1;key 7 1
  assert {[read 18]==0 && [read 6]==0} "neighbor interior ownership"
  key 7 4;key 3 0x20
- assert {[read 13]==40 && [debug read memory 0xd670]==0} "owner interior lost after visit"
+ assert {[read 13]==40 && [debug read memory 0xd670]==11} "owner interior lost after visit"
  assert {$::interaction::violations==0} "VDP timing violations"
  finish "PASS pixel walking, aligned turns, four-direction two-frame sprites, solid/non-solid collision, facing build, rectangular trees/cottage pieces, 2x2 door, save freeze, visits; refresh=[read 30]; half-second walk=$speedDistance pixels; VDP violations=0"
 }

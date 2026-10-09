@@ -1,3 +1,4 @@
+import { applySourceOverrides } from './overrides.mjs';
 // Original Village pixel artwork. Each glyph is an 8x8 SCREEN 2 tile.
 // A row uses its foreground/background pair; no image quantization is involved.
 // Approximate TMS9918 RGB preview only; emulator/hardware captures take precedence.
@@ -159,3 +160,6 @@ export const avatars=[];
 for(const base of [back,front,left,left.map(r=>[...r].reverse().join(''))])for(let step=0;step<2;step++){
  const frame=base.slice();if(step){frame[13]='....BBB..BB.....';frame[14]='....BB...BBB....';frame[15]='.........BB.....';}avatars.push(frame);
 }
+
+// PNG imports affect the study and production renderer through the same glyphs.
+applySourceOverrides(tiles, avatars);

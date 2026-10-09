@@ -17,6 +17,7 @@ volatile __at(0xE000) u8 bridge[32];
 u8 visitData[DATA_SIZE];
 u8 screen[MAP_SIZE];
 u8 collision[MAP_SIZE], collisionDirty, redraw;
+u8 dirtyLeft, dirtyTop, dirtyRight, dirtyBottom;
 u8 ownSlot, currentSlot, inside, px, py, editing, palette, objectMode, selection;
 u8 facing, walkFrame, walkDistance, moving, refresh, speedFraction;
 i16 targetX, targetY;
@@ -30,7 +31,7 @@ u8 currentKeys[10], previousKeys[10], moveDelay, noticeFrames, displayMode;
 const char* notice;
 
 #include "assets.generated.h"
-u8 catalogItems[OBJECT_COUNT], catalogCount, catalogIndex, catalogCategory;
+u8 catalogItems[CATALOG_CAPACITY], catalogCount, catalogIndex, catalogCategory;
 
 
 
@@ -109,10 +110,19 @@ void paintObject(u8 kind,u8 x,u8 y) {
  u8 w=objectWidth[kind],h=objectHeight[kind],row,col;u16 p;
  for(row=0;row<h;++row)for(col=0;col<w;++col){p=(u16)(y+row)*32+x+col;screen[p]=objectCells[objectOffsetTable[kind]+row*w+col];textMask[p/8]&=~(1<<(p%8));}
 }
-// Every section independently deduplicates its pattern/color pairs. Text IDs are
-// flagged separately, leaving all 256 scene IDs and all 256 native slots usable.
+// Scene slots match the deduplicated ROM atlas. Temporary text sections allocate
+// art and font IDs separately, leaving all 256 native slots available to either.
 void renderSection(u8 section) {
  u16 i,p,key,count=0;u8 id,mask,slot;u16 base=section*0x800;
+ // Scene IDs are already a bounded atlas of at most 256 patterns. Keep their
+ // native slots stable so an edit only needs name-table writes, with display on.
+ if(displayMode==DISPLAY_SCENE || (displayMode==DISPLAY_PANEL && section<2)){
+  VDP_WriteVRAM_16K((const u8*)scenePatterns,base,ART_COUNT*8);
+  VDP_WriteVRAM_16K((const u8*)sceneColors,0x2000+base,ART_COUNT*8);
+  if(ART_COUNT<256){VDP_FillVRAM_16K(0,base+ART_COUNT*8,(256-ART_COUNT)*8);VDP_FillVRAM_16K(0,0x2000+base+ART_COUNT*8,(256-ART_COUNT)*8);}
+  VDP_WriteVRAM_16K(screen+section*256,0x1800+section*256,256);
+  return;
+ }
  Mem_Set(0,nativeUsed,44);
  VDP_FillVRAM_16K(0,base,2048);VDP_FillVRAM_16K(0,0x2000+base,2048);
  for(i=0;i<256;++i){p=section*256+i;key=screen[p];if(textMask[p/8]&(1<<(p%8)))key+=256;
@@ -141,25 +151,34 @@ void draw(void) {
  if(mode!=displayMode){if(mode!=DISPLAY_CATALOG && displayMode!=DISPLAY_CATALOG)first=2;redraw=1;}
  displayMode=mode;
  if(redraw) {
-  VDP_EnableDisplay(FALSE);for(i=0;i<6;++i)VDP_SetSpriteSM1(i,0,212,0,0);
-  Mem_Set(0,textMask,96);
-  for(i=0;i<MAP_SIZE;++i)screen[i]=terrainPatterns[d[base+i]];
+  if(redraw!=2){VDP_EnableDisplay(FALSE);for(i=0;i<6;++i)VDP_SetSpriteSM1(i,0,212,0,0);}
+  if(redraw==2){
+   u8 x,y;
+   for(y=dirtyTop;y<dirtyBottom;++y)for(x=dirtyLeft;x<dirtyRight;++x){u16 p=(u16)y*32+x;screen[p]=terrainPatterns[d[base+p]];}
+  }else{
+   Mem_Set(0,textMask,96);
+   for(i=0;i<MAP_SIZE;++i)screen[i]=terrainPatterns[d[base+i]];
+  }
   for(i=0;i<32;++i){u16 p=obj+i*3;u8 kind=d[p];if(kind<OBJECT_COUNT && d[p+1]+objectWidth[kind]<=32 && d[p+2]+objectHeight[kind]<=24)paintObject(kind,d[p+1],d[p+2]);}
-  if(!inside && d[4]<31 && d[5]<23){for(i=0;i<4;++i)screen[(u16)(d[5]+i/2)*32+d[4]+i%2]=40+i;}
+  if(!inside && d[4]<31 && d[5]<23){for(i=0;i<4;++i)screen[(u16)(d[5]+i/2)*32+d[4]+i%2]=doorPatterns[i];}
   if(palette) {
    u8 start=(catalogIndex/6)*6;
    Mem_Set(0,screen,MAP_SIZE);Mem_Set(255,textMask,96);
    text(1,0,objectMode?categoryNames[catalogCategory]:"TERRAIN");text(1,1,"Z/X CATEGORY  F3 TILES/OBJECTS");text(1,2,"ARROWS CHOOSE  SPACE CONFIRMS");
    for(i=start;i<catalogCount && i<start+6;++i){u8 id=catalogItems[i],x=1+((i-start)%3)*10,y=5+((i-start)/3)*8;
-    if(objectMode)paintObject(id,x,y);else if(id==13){u8 q;for(q=0;q<4;++q){u16 p=(u16)(y+q/2)*32+x+q%2;screen[p]=40+q;textMask[p/8]&=~(1<<(p%8));}}else{u16 p=(u16)y*32+x;screen[p]=terrainPatterns[id];textMask[p/8]&=~(1<<(p%8));}
+    if(objectMode)paintObject(id,x,y);else if(id==13){u8 q;for(q=0;q<4;++q){u16 p=(u16)(y+q/2)*32+x+q%2;screen[p]=doorPatterns[q];textMask[p/8]&=~(1<<(p%8));}}else{u16 p=(u16)y*32+x;screen[p]=terrainPatterns[id];textMask[p/8]&=~(1<<(p%8));}
    }
    text(1,21,objectMode?objectNames[selection]:tileNames[selection]);
    {char dimensions[12]="1 X 1 TILES";dimensions[0]='0'+targetSize;dimensions[4]='0'+targetHeight;text(1,22,dimensions);}
    if(objectMode)text(15,22,objectSolid[selection]?"SOLID":"WALKABLE");
    text(1,23,"F1 BUILD F4 ERASE F5 SAVE");
   } else if(noticeFrames){Mem_Set(0,screen+512,256);Mem_Set(255,textMask+64,32);text(1,18,notice);text(1,22,"SPACE / ENTER / ESC TO CLOSE");}
-  for(i=first;i<3;++i)renderSection(i);
-  VDP_EnableDisplay(TRUE);
+  if(redraw==2){
+   for(i=dirtyTop;i<dirtyBottom;++i){u16 p=i*32+dirtyLeft;VDP_WriteVRAM_16K(screen+p,0x1800+p,dirtyRight-dirtyLeft);}
+  }else{
+   for(i=first;i<3;++i)renderSection(i);
+   VDP_EnableDisplay(TRUE);
+  }
  }
  if(palette){VDP_SetSpriteSM1(0,0,212,0,0);VDP_SetSpriteSM1(1,0,212,0,0);cursor((1+(catalogIndex%3)*10)*8,(5+((catalogIndex%6)/3)*8)*8,targetSize,targetHeight,15);}
  else {
@@ -178,16 +197,21 @@ void draw(void) {
  bridge[23]=targetX;bridge[24]=targetY;bridge[25]=targetSize;bridge[26]=targetValid;
  bridge[27]=3;bridge[28]=px;bridge[29]=py;bridge[30]=refresh;bridge[31]=displayMode;redraw=0;
 }
+void dirtyScene(u8 x,u8 y,u8 w,u8 h) {
+ if(redraw==1)return;
+ if(redraw!=2){dirtyLeft=x;dirtyTop=y;dirtyRight=x+w;dirtyBottom=y+h;redraw=2;}
+ else{if(x<dirtyLeft)dirtyLeft=x;if(y<dirtyTop)dirtyTop=y;if(x+w>dirtyRight)dirtyRight=x+w;if(y+h>dirtyBottom)dirtyBottom=y+h;}
+}
 void eraseObjectsAt(i16 x,u8 y,u8 w,u8 h) {
  volatile u8* d=data();u16 i,off=objectOffset();
- for(i=0;i<32;++i){u16 p=off+i*3;u8 kind=d[p];if(kind<OBJECT_COUNT && overlaps(x,y,w,h,d[p+1],d[p+2],objectWidth[kind],objectHeight[kind]))d[p]=255;}
+ for(i=0;i<32;++i){u16 p=off+i*3;u8 kind=d[p];if(kind<OBJECT_COUNT && overlaps(x,y,w,h,d[p+1],d[p+2],objectWidth[kind],objectHeight[kind])){dirtyScene(d[p+1],d[p+2],objectWidth[kind],objectHeight[kind]);d[p]=255;}}
 }
 void place(void) {
  volatile u8* d=data();u16 off=mapOffset(),o=objectOffset(),i,p;
  if(currentSlot!=ownSlot || bridge[5]==1 || bridge[5]==2)return;
  buildTarget();if(!targetValid){message("CANNOT BUILD HERE");return;}
  if(!objectMode) {
-  if(selection==13 && !inside){eraseObjectsAt(targetX,targetY,2,2);d[4]=targetX;d[5]=targetY;}
+  if(selection==13 && !inside){if(d[4]<31 && d[5]<23)dirtyScene(d[4],d[5],2,2);eraseObjectsAt(targetX,targetY,2,2);d[4]=targetX;d[5]=targetY;}
   else if(selection==13){message("DOOR BELONGS OUTSIDE");return;}
   else d[off+(u16)targetY*32+targetX]=selection;
  } else {
@@ -198,15 +222,17 @@ void place(void) {
   eraseObjectsAt(targetX,targetY,targetSize,targetHeight);
   for(i=0;i<32;++i){p=o+i*3;if(d[p]==255){d[p]=selection;d[p+1]=targetX;d[p+2]=targetY;break;}}
  }
- bridge[6]=1;collisionDirty=redraw=1;
+ dirtyScene(targetX,targetY,targetSize,targetHeight);
+ bridge[6]=1;collisionDirty=1;
 }
 void erase(void) {
  volatile u8* d=data();
  if(currentSlot!=ownSlot || bridge[5]==1 || bridge[5]==2)return;
  buildTarget();if(!targetValid)return;
  eraseObjectsAt(targetX,targetY,1,1);
- if(!objectMode){d[mapOffset()+(u16)targetY*32+targetX]=inside?6:0;if(doorAt(targetX,targetY))d[4]=d[5]=255;}
- bridge[6]=1;collisionDirty=redraw=1;
+ if(!objectMode){d[mapOffset()+(u16)targetY*32+targetX]=inside?6:0;if(doorAt(targetX,targetY)){dirtyScene(d[4],d[5],2,2);d[4]=d[5]=255;}}
+ dirtyScene(targetX,targetY,1,1);
+ bridge[6]=1;collisionDirty=1;
 }
 bool movePixel(u8 dir) {
  i16 x=px,y=py;u8 destination=currentSlot,previous=currentSlot;

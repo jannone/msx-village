@@ -50,9 +50,15 @@ The Worker uses Node-compatible scrypt with N=32768, r=8, p=3. Production authen
 
 Migrations define accounts, invitations, sessions, plots, immutable settlement history, request limits, and separate custom asset/revision/reference tables. Custom artwork authoring is deferred; these tables reserve stable ownership and revision relationships. Current maps use only the standard catalog. Migration 0003 adds artwork dimensions, object footprint/solidity, and frame layout to immutable artwork revisions for future authoring.
 
-Settlement and ROM formats are version 3. Catalog entries determine object width, height and solidity; saves cannot supply replacements for that metadata. Validation covers all occupied cells, prohibits overlapping object footprints or entrance overlap, and requires the 2×2 door to fit. Saves retain the 1744-byte layout and kind/x/y triples; IDs 0–11 retain their original footprints. IDs 12–29 add rectangular medieval trees, furnishings, and cottage roof/wall pieces.
+Settlement and ROM formats are version 4. The catalog contains 20 medieval objects
+and 23 terrain tools. Footprints and solidity come from the catalog; clients
+cannot override them. The binary layout remains 1744 bytes. Older save formats
+are rejected without migration. This single-user greenfield project permits
+breaking changes; coordinate current plot regeneration with deployment. Revision
+history is archival data, not a promise that current software loads old saves.
 
-Stored v1/v2 settlements and immutable history are preserved. V2 content migrates unchanged apart from its version. Reading current plots or assembling a ROM converts v1 content to v3: maps, objects, and avatar choice remain intact; an entrance grows to 2×2 at its existing anchor where possible, otherwise moves to the nearest fitting location free of decorative objects. The next successful owner save persists v3 as a new revision. V1/v2 submissions are rejected so an old running ROM cannot overwrite revised semantics; players should save before the update and load a fresh snapshot after it.
+For isolated API tests, set `VILLAGE_TEST_PERSIST_TO` to local Wrangler's
+`--persist-to` directory and `VILLAGE_TEST_URL` to its localhost URL.
 
 ## Browser save bridge
 

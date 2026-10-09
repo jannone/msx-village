@@ -74,6 +74,75 @@ contrast. Production tests cover both layers, every catalog footprint in all fou
 directions, and layer hiding/restoration during temporary text interfaces. Future
 sprite objects must respect the remaining scanline budget.
 
+## Editing the PNG sheet
+
+Export every original background glyph, complete catalog object, entrance, terrain
+entry, traveler frame in all four production palettes and the study palette, and
+build cursor into one lossless PNG:
+
+```sh
+node msx/tools/export-art-sheet.mjs
+```
+
+The editable file is `msx/out/art-sheet/all-art.png` (512x1086 at the current catalog
+size), with **8 native pixels of transparent spacing** between asset-and-caption
+blocks. Each caption sits 4px below its artwork and uses an original 3x5 pixel font
+with 1px between letters. Long names wrap with 2px between lines; white text on a
+black backing remains readable on an editor's checkerboard. Captions are ignored
+during import. Objects retain contiguous internal 8x8 cells. `all-art.json` records exact bounds,
+source identities, palette mappings, and original source bits/color pairs. Keep it
+with the PNG. `all-art-guide.html` labels every element and shows its coordinates;
+`all-art-preview-4x.png` is a nearest-neighbor viewing copy, not an import source.
+The swatches at the bottom of the native sheet provide exact MSX palette colors.
+The upstream sample UI font is not original Village art and is not part of this
+sheet. Room arrangements, footprints, IDs, solidity, and palettes remain catalog
+or game definitions rather than editable image properties.
+
+Edit the native PNG using a pixel pencil, without antialiasing, resizing, cropping,
+or moving elements. Save an 8-bit RGB/RGBA or indexed PNG without interlacing.
+Background cells must stay opaque and use at most two MSX colors in each horizontal
+8-pixel row; that constraint applies separately to each cell of a larger object.
+Avatar pixels use the two colors shown for that appearance and full transparency;
+cursors use white and full transparency. Changing the traveler silhouette updates
+all outfit appearances. PNG compression remains lossless at any compression level.
+
+The complete-object, terrain, and source-glyph areas deliberately repeat shared
+art. You can edit one copy; unchanged copies are ignored during import. If you
+change several copies of the same source cell, the changed copies must agree.
+For example, cottage roof cells share `roof`, and furnishings share some bedding
+and timber glyphs. Conflicting copies are rejected with their element names, so
+no art is silently overwritten. Use the guide/map to identify shared cells.
+
+Validate and import with the map from the original export (an explicit map path
+also allows the edited PNG to have a different filename):
+
+```sh
+node msx/tools/import-art-sheet.mjs /path/to/edited.png msx/out/art-sheet/all-art.json --check
+node msx/tools/import-art-sheet.mjs /path/to/edited.png msx/out/art-sheet/all-art.json
+node msx/tools/build.mjs
+node msx/tools/build-art-study.mjs
+node msx/tools/build-herbalist-demo.mjs
+python3 msx/tests/run.py herbalist
+python3 msx/tests/run-art-study.py
+```
+
+Imports validate the entire sheet, shared copies, current-source fingerprint, and
+production pattern budget before atomically writing `msx/art/overrides.json`.
+Invalid colors are rejected; they are never quantized. The importer preserves
+unchanged source bytes, including invisible foreground/background information.
+Overrides are reviewable source data used by both production and study builds;
+catalog footprints and storage IDs are unaffected by pixel edits. No ROM or
+live website is published by the importer. After an import, export a fresh sheet
+for the next editing session; an old map is rejected if its source art has changed.
+Back up an edited PNG/map before exporting to the same output location.
+
+Optional output path and workflow regression:
+
+```sh
+node msx/tools/export-art-sheet.mjs /path/to/my-art.png
+node msx/tests/art-sheet.mjs
+```
+
 ## Reproducible source and review
 
 - `herbalist.mjs`: editable glyph rows, per-row color pairs, tree silhouettes,
@@ -109,7 +178,7 @@ still required before release.
 
 1. Complete: refined foliage, material textures, and furniture proportions.
 2. Complete: every glyph used by both sample rooms is available through production
-   terrain or objects; 23 terrain tools and 32 objects, with stable existing IDs.
+   terrain or objects; 23 terrain tools and 20 medieval objects. Prototype assets are removed.
 3. Complete: both rooms reconstruct exactly in the production renderer, with
    normal entrances, catalog editing, temporary text, and save/snapshot encoding.
 4. Next collection: knight and cartographer objects sharing these materials.

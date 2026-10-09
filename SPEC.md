@@ -1,6 +1,11 @@
 # MSX Village Product and Technical Specification
 
-Status: Updated first-version software implemented and verified in emulators; real-hardware acceptance pending
+Status: Greenfield development; current settlement/snapshot format 4; real-hardware acceptance pending
+
+This project has one author and user. Backward compatibility is not required.
+Remove obsolete assets and save readers instead of retaining compatibility code.
+Current plot data can be regenerated when formats change; version identifiers
+reject stale ROM saves without promising support for older formats.
 
 ## Product intent
 
@@ -33,19 +38,17 @@ cartographer's study are reference exhibits for personal expression through obje
 The production catalog uses rectangular background objects with explicit width and
 height, including a 5 by 5 oak, 3 by 4 pine, 6 by 2 cottage roof, and 2 by 3 wall
 section. The avatar canvas remains 16 by 16 pixels and the entrance remains 2 by 2
-tiles. Format 3 preserves the dimensions and solidity of all existing IDs 0–11;
-new artwork has new IDs. Categories currently group Classic, Garden, Village,
+tiles. The catalog contains medieval artwork, grouped into Garden, Village,
 Interior, and Relics; trades and further themed collections remain planned.
 
 The refined herbalist garden and cottage establish the production direction. The
 complete study can be reconstructed using the public catalog: 23 terrain tools
-(including the separate entrance tool) and 32 objects. Added terrain includes
+(including the separate entrance tool) and 20 objects. Added terrain includes
 grass tufts, cobblestones, riverbanks, soil, roof eaves, dark interior surrounds,
 and rug borders. A 2 by 3 traveler bed and 3 by 2 worktable complement the existing
-small furnishings. Existing terrain and object IDs, footprints, and solidity are
-preserved; all new entries append to format 3 without changing its byte layout.
-Saved terrain IDs are mapped to generated artwork slots independently, so extra
-terrain cannot collide with legacy object graphics.
+small furnishings. The 12 prototype objects and Classic category have been removed.
+Format 4 uses a compact catalog and no older save readers. Terrain, entrance, and
+object artwork are mapped into generated slots without reserved legacy ranges.
 
 The art guide and two native herbalist sample rooms establish the direction.
 Production catalog/storage integration and per-section graphics allocation are
@@ -103,9 +106,12 @@ Transitions briefly blank the display while the affected pattern/color tables an
 name table are rebuilt, then restore gameplay sprites. Closing an interface
 reconstructs the affected scene sections from the current settlement and ROM
 artwork, without modifying settlement data or retaining a second full VRAM copy.
-Each section independently allocates the pattern/color pairs used by its 256
-cells. Logical artwork and temporary text have separate identities; native slots
-are assigned during rendering, so no persistent font range reduces scene art.
+Scene sections use stable native slots matching the deduplicated ROM artwork
+atlas. Placing, replacing, painting, moving the entrance, and erasing keep the
+display enabled and update only name-table cells covering the affected complete
+footprints. Scene artwork stays resident throughout editing. Temporary text
+sections independently allocate artwork and font identities during rendering,
+so no persistent font range reduces scene art.
 The generator bounds the standard logical atlas to 256 patterns. A section cannot
 need more than one native pattern per cell, including objects crossing sections.
 
@@ -219,7 +225,7 @@ The game engine and standard assets are compiled during development or release b
 
 The snapshot format is versioned and has shared definitions for tile IDs, object IDs, plot references, and data limits. The MSX reader and web encoder must agree on these definitions. The current plot is edited in RAM; the ROM remains the source for the snapshot’s original data.
 
-The standard catalog must describe each object's footprint, constituent background patterns or sprite reference, and collision and interaction behavior. Store a multi-tile object as one placement with an asset reference and top-left tile anchor, not as unrelated tile placements. Count each placed object once toward the existing limit of 32 decorative objects per space, irrespective of footprint; the special entrance remains separately represented. Object replacement removes complete intersecting object placements. Erasing any occupied cell removes the whole object. Ground painting preserves objects. Object placement cannot overlap the entrance; placing or moving the entrance clears intersecting exterior objects while preserving the interior. Any incompatible change to existing placements, door data, sprite patterns, or binary encoding requires a versioned format and an explicit migration of saved settlements and ROM generation.
+The standard catalog must describe each object's footprint, constituent background patterns or sprite reference, and collision and interaction behavior. Store a multi-tile object as one placement with an asset reference and top-left tile anchor, not as unrelated tile placements. Count each placed object once toward the existing limit of 32 decorative objects per space, irrespective of footprint; the special entrance remains separately represented. Object replacement removes complete intersecting object placements. Erasing any occupied cell removes the whole object. Ground painting preserves objects. Object placement cannot overlap the entrance; placing or moving the entrance clears intersecting exterior objects while preserving the interior. Incompatible catalog or binary changes require a new format identifier and coordinated current data regeneration; older saves are rejected without migration code.
 
 ### Storage model for custom artwork
 
@@ -229,7 +235,7 @@ Artwork metadata must include pixel dimensions, frame layout, and, for placeable
 
 Asset ownership and permissions follow the same server-side rules as settlement ownership. A player can modify only their own artwork. The server validates custom artwork against supported MSX formats and per-player quotas. Creating an asset does not allow a player to define executable code or change game behavior.
 
-Asset revisions must preserve the artwork referenced by saved settlement revisions. Editing or deleting an asset must not leave an existing exhibit with a missing or silently changed dependency. Snapshot generation resolves the required revisions and maps their stable database identifiers to compact ROM-local tile and sprite indices; globally shared numeric tile slots must not be assumed.
+Current exhibits must reference valid artwork. During greenfield development, artwork and content may be replaced together; historical asset compatibility is not required. Snapshot generation resolves the current referenced artwork and maps its identifiers to compact ROM-local tile and sprite indices; globally shared numeric tile slots must not be assumed.
 
 D1 is the starting storage choice for the small, bounded artwork payloads and their metadata. The model should keep asset records separate from settlement maps so binary payload storage can change later if needed, without changing ownership or placement references. A separate object store is not required for the initial release.
 
@@ -279,9 +285,9 @@ Limited custom tile and sprite creation and avatar sprite customization are spec
 ## Decisions to resolve before implementation
 
 - Confirmed: 1 MiB ASCII8, MSX1, 64 KB RAM. Validate the intended flash cartridge on real hardware.
-- Revised requirement: 8 by 8 pixel base tiles; 16 by 16 sprites, including the four selectable avatar appearances; both 1 by 1 and 2 by 2 tile catalog objects; a 2 by 2 door. Retain up to 32 decorative objects per space, with background patterns available for decoration. Implemented in format 3; IDs 0–11 retain their previous sizes, and new IDs provide larger rectangular objects.
+- Revised requirement: 8 by 8 pixel base tiles; 16 by 16 sprites, including the four selectable avatar appearances; both 1 by 1 and 2 by 2 tile catalog objects; a 2 by 2 door. Retain up to 32 decorative objects per space, with background patterns available for decoration. Implemented in format 4 with 20 current medieval objects.
 - Implemented: Zelda NES-inspired pixel movement and collision, explicit solid/non-solid objects, and two-frame walking animation for all four facing directions. Walking targets 90 pixels/second using BIOS refresh rate; the walking footprint is an 8 by 8 feet region at sprite offset (4,8). Perpendicular turns use 8-pixel alignment; simultaneous input prioritizes left, right, up, then down. PAL/NTSC emulator tests cover these choices.
-- Implemented: whole-object replacement/removal, footprint validation, and version-3 settlement/snapshot encoding. Read-time migration preserves v2 content unchanged except its version. V1 migration preserves maps and objects and relocates an entrance only when necessary for its 2 by 2 footprint; the next owner save persists a new version-3 revision.
+- Implemented: whole-object replacement/removal, footprint validation, and current-only format-4 encoding. Prototype artwork and old save readers are removed.
 - Define custom tile and sprite quotas, artwork and animation formats, revision retention, and their reserved snapshot budget before finalizing the storage and ROM formats.
 - Confirmed: invitation-based registration with username/password.
 - Confirmed: manual selection from available map locations; initial claims are bounded to coordinates -100 through 100.

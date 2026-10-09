@@ -1,5 +1,5 @@
 import { createSession, digest, hashPassword, sessionUser, verifyPassword } from './auth';
-import { initialSettlement, migrateSettlement, validateSettlement } from '../shared/settlement';
+import { initialSettlement, validateSettlement } from '../shared/settlement';
 import { assembleSnapshot } from '../shared/snapshot';
 import { CORE_ROM } from './rom-template';
 
@@ -9,7 +9,7 @@ class HttpError extends Error {
 interface PlotRow { id: string; x: number; y: number; revision: number; content: string; updated_at: number; username: string }
 const now = () => Math.floor(Date.now() / 1000);
 const json = (value: unknown, status = 200, cookie?: string) => Response.json(value, { status, headers: { 'Cache-Control': 'no-store', ...(cookie ? { 'Set-Cookie': cookie } : {}) } });
-const plot = (row: PlotRow) => ({ ...row, content: migrateSettlement(JSON.parse(row.content)) });
+const plot = (row: PlotRow) => ({ ...row, content: validateSettlement(JSON.parse(row.content)) });
 async function body(request: Request, fields: string[]): Promise<Record<string, unknown>> {
   if (!request.headers.get('Content-Type')?.startsWith('application/json')) throw new HttpError(415, 'Use application/json');
   const reader = request.body?.getReader();
@@ -120,7 +120,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const owned = user && await ownPlot(db,user.id);
     const x = coordinate(Number(url.searchParams.get('x') ?? owned?.x ?? 0));
     const y = coordinate(Number(url.searchParams.get('y') ?? owned?.y ?? 0));
-    const plots = (await region(db,x,y)).map(row => ({ ...row, content: migrateSettlement(JSON.parse(row.content)) }));
+    const plots = (await region(db,x,y)).map(row => ({ ...row, content: validateSettlement(JSON.parse(row.content)) }));
     const core = Uint8Array.from(atob(CORE_ROM), char => char.charCodeAt(0));
     const rom = assembleSnapshot(core, plots, x, y, owned || undefined);
     return new Response(rom, { headers: { 'Content-Type':'application/octet-stream', 'Content-Disposition':`attachment; filename="msx-village-${x}-${y}.rom"`, 'Cache-Control':'private, no-store' } });

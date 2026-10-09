@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 import hashlib, os, subprocess, sys, re
 root=Path(__file__).resolve().parents[1]
 fixture=sys.argv[1] if len(sys.argv)>1 else 'startup'
-if fixture not in ('startup','interaction','display','avatar','herbalist'): raise SystemExit('Unknown test fixture')
+if fixture not in ('startup','interaction','display','avatar','herbalist','building'): raise SystemExit('Unknown test fixture')
 output=root/'out/tests';output.mkdir(parents=True,exist_ok=True)
 
 def check(case):
@@ -11,6 +11,8 @@ def check(case):
  rom=root/('out/herbalist/village-herbalist.rom' if fixture=='herbalist' else f'out/village-{kind}.rom');report=output/f'{machine}-{kind}-{fixture}.txt'
  report.unlink(missing_ok=True)
  env=dict(os.environ,VILLAGE_REPORT=str(report),VILLAGE_OWN_SLOT=str(slot),VILLAGE_HERBALIST_OUTPUT=str(root/'out/herbalist'))
+ env['VILLAGE_ART_COUNT']=re.search(r'^#define ART_COUNT (\d+)', (root/'assets.generated.h').read_text(), re.M)[1]
+ env['VILLAGE_EXPECTED_REFRESH']='50' if machine.endswith('_EU') else '60'
  for address,name in re.findall(r'^\s+([0-9A-F]{8})\s+_(\w+)\s+village', (root/'out/village.map').read_text(), re.M): env['VILLAGE_VAR_'+name]=str(int(address,16))
  executable=os.environ.get('VILLAGE_OPENMSX','openmsx')
  proc=subprocess.run([executable,'-setting',str(root/'tests/headless.xml'),'-machine',machine,'-cart',str(rom),'-romtype','ASCII8','-script',str(root/f'tests/{fixture}.tcl')],env=env,capture_output=True,text=True,timeout=360)
